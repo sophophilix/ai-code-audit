@@ -1,4 +1,4 @@
-# agent-audit-kit
+# ai-code-audit
 
 A reusable, harness- and model-independent kit for running an **independent,
 evidence-based code audit with AI agents**, with humans making every decision.
@@ -111,8 +111,33 @@ On Windows, run the kit in WSL2 (or Git Bash): the Python CLI runs anywhere uv d
 
 Every change: bump `VERSION`, add a `CHANGELOG.md` entry, and re-run the evaluation.
 
+## Keep client details out of this repository
+
+This repository is public. A client's name, systems, file names and findings
+stay in its audit workspace or in `use-cases/<name>.local.md`. Git ignores
+every `*.local.*` file. In ADRs and the changelog, call a client codebase
+"a pilot app" or describe its type, such as "a council reporting site".
+
+A hook blocks a commit or push that contains a client term:
+
+1. Create `client-terms.local.txt` in the repository root.
+2. Write one term per line: client names, system names and product names. Matching ignores case.
+3. Install the hooks:
+
+   ```sh
+   printf '#!/bin/sh\nexec "$(git rev-parse --show-toplevel)/bin/check-client-terms"\n' > .git/hooks/pre-commit
+   printf '#!/bin/sh\nexec "$(git rev-parse --show-toplevel)/bin/check-client-terms" --all\n' > .git/hooks/pre-push
+   chmod +x .git/hooks/pre-commit .git/hooks/pre-push
+   ```
+
+   If you use pre-commit, `.pre-commit-config.yaml` runs the same check.
+
+4. Check the whole tree at any time with `bin/check-client-terms --all`.
+
+Without `client-terms.local.txt`, the hook checks nothing and says so.
+
 ## Built on
-- Your v1–v3 council audit kit specification
+- The author's earlier audit kit specifications, versions 1 to 3
 - addyosmani/agent-skills: skill anatomy, verification gates, rationalisation tables, doubt-driven review
 - Anthropic skill-creator: progressive disclosure, descriptions as triggers
 - GitHub ReviewBench and published review-agent evaluations: grounded recall/precision, repeated runs

@@ -1,0 +1,34 @@
+#!/bin/sh
+# Refuse a commit that adds a client's name, system or file to this public repo.
+# Terms come from client-terms.local.txt (one per line, # for comments), which
+# .gitignore keeps on this machine. Matching ignores case.
+#   bin/check-client-terms          staged changes (pre-commit)
+#   bin/check-client-terms --all    every tracked file (pre-push, or by hand)
+set -eu
+
+root=$(git rev-parse --show-toplevel)
+list="$root/client-terms.local.txt"
+if [ ! -f "$list" ]; then
+  echo "check-client-terms: no client-terms.local.txt, nothing checked" >&2
+  exit 0
+fi
+
+terms=$(mktemp)
+trap 'rm -f "$terms"' EXIT
+grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$list" > "$terms" || true
+[ -s "$terms" ] || exit 0
+
+if [ "${1:-}" = "--all" ]; then
+  hits=$( (git ls-files; git grep -I -n -i -F -f "$terms" -- . ':!client-terms.local.txt') \
+    | grep -i -F -f "$terms" || true)
+else
+  hits=$( (git diff --cached --name-only --diff-filter=ACMR;
+           git diff --cached -U0 --no-color | grep '^+' | grep -v '^+++') \
+    | grep -i -F -f "$terms" || true)
+fi
+
+if [ -n "$hits" ]; then
+  echo "check-client-terms: client terms found; remove them before you commit or push:" >&2
+  echo "$hits" | head -20 >&2
+  exit 1
+fi

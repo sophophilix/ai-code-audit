@@ -18,3 +18,9 @@ repos:
         language: system
         pass_filenames: false
         args: [src, tests]
+      - id: client-terms
+        name: no client terms (client-terms.local.txt)
+        entry: bin/check-client-terms
+        language: system
+        pass_filenames: false
+        always_run: true
