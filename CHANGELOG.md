@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased: a final report a manager can read
+- **The lead reviewer writes with `technical-writing`.** It loads the
+  `technical-writing` and `humanizer` skills from sophophilix/agent-skills,
+  pinned to `c33d852` (`THIRD_PARTY.md`). `audit-publishing` lists where the
+  kit's rules win: outputs stay in `.audit/`, the provenance header replaces
+  the skill's document-control block, Checkpoint 2 is the review, and agents
+  don't run `ste-lint.py`.
+- **The report has three parts.** Part A is for decision-makers (executive
+  summary, decisions needed, top five issues, roadmap), Part B for technical
+  teams, Part C for scope, method and limits. Impact comes before cause, and
+  finding IDs go at the end of a sentence. The section headings that
+  `kit verify` checks (OUT-R11, OUT-R13) are unchanged.
+- **New person checks.** OUT-R14 (Part A stands on its own) and OUT-R15
+  (`ste-lint.py` run on the report, advisory).
+
 ## 0.18.0 – 2026-11-09: what one file can't show reaches the file review
 From the tuned 0.17.0 seeded pilot. Two seeded issues couldn't be found by any
 pass: their evidence is in another file, and the brief never carried it.

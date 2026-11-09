@@ -55,6 +55,8 @@ every record, so a record reused from an earlier audit is checked against this o
 | OUT-R7 | Secret scan of all outputs is clean (gitleaks on `.audit/`, excluding `scans/`) | yes |
 | OUT-R8 | No exploit detail beyond a scenario in words | person |
 | OUT-R9 | A non-technical reader can follow the executive summary | person |
+| OUT-R14 | Part A (executive summary, decisions needed, top five issues, roadmap) stands on its own: a manager who reads only Part A knows the risk, the decisions and the next step | person |
+| OUT-R15 | `ste-lint.py` from the pinned `technical-writing` skill was run on the report and its warnings were read (advisory; doesn't block release) | person |
 | OUT-R10 | The method section states which findings a person checked | yes (presence) |
 | OUT-R13 | When the target has a user interface, the report has a "Still to check by hand" section listing the manual checks | yes (presence) / person (complete) |
 | OUT-R12 | Every package named in a finding's `Packages` field was looked up, and none is missing from npm or deprecated (skipped, with a note, when lookups are denied) | yes |

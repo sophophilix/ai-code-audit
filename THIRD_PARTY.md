@@ -121,6 +121,41 @@ brew install --cask drawio && brew install graphviz
 ```
 Software installs on council machines need ICT approval.
 
+## technical-writing and humanizer (writing skills)
+
+| Field | Value |
+|---|---|
+| Repository | https://github.com/sophophilix/agent-skills |
+| Paths | `plugins/writing/skills/technical-writing` (version 1.1.0), `plugins/writing/skills/humanizer` (version 3.0.0) |
+| Pinned commit | `c33d852` (main, 2026-11-09) |
+| Licence | MIT (repository `LICENSE`). `humanizer` is a modified copy of blader/humanizer 3.0.0, MIT, with its own `LICENSE`. `scripts/ste-lint.py` is a byte-for-byte copy of danyuchn/asd-ste100-skill at `d48bfca`, MIT, with `LICENSE-ste-lint`. The repository's own `THIRD_PARTY.md` records both. |
+| Used by | `core/agents/lead-reviewer.md` and `core/skills/audit-publishing` (the report, the briefing and the ADRs) |
+| Reviewed | 2026-11-10 |
+
+**Review.** Both skills are instructions only, except `ste-lint.py`. The
+linter imports the standard library only, reads the files named on its
+command line, and makes no network or subprocess calls (checked 2026-11-10 by
+reading its imports and searching for `subprocess`, `socket`, `urllib`,
+`os.system`, `exec(` and `eval(`; 2,388 lines, the rest not read). Agents
+never run it (AGENTS.md rule 2). A person runs it with `python3 -I` at
+publishing, and its output is advisory.
+
+`technical-writing` defaults to `docs/`, its own document-control block and a
+review-guide format. `audit-publishing` ("Where the kit's rules win") replaces
+those for audit outputs, so the skills run unchanged.
+
+**Install (pinned).**
+```zsh
+DEST=~/.local/share/agent-skills/agent-skills-c33d852
+git clone https://github.com/sophophilix/agent-skills.git "$DEST"
+git -C "$DEST" checkout --detach c33d852
+# Claude Code (user-level): link only the two skill folders
+ln -s "$DEST/plugins/writing/skills/technical-writing" ~/.claude/skills/technical-writing
+ln -s "$DEST/plugins/writing/skills/humanizer" ~/.claude/skills/humanizer
+```
+A link to a working checkout of the repository follows its branch, not the
+pin. Point the links at the pinned folder before an audit.
+
 ## knip and dependency-cruiser (sandbox image only)
 
 | Field | Value |

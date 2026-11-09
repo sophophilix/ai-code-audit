@@ -285,6 +285,10 @@ and PNG at 2× for Word and PowerPoint (File → Export as). Export VSDX for Vis
 
 ## 10. Publish the report and briefing
 
+The lead reviewer writes the report and briefing with the `technical-writing`
+and `humanizer` skills. Install them at their pinned commit before the audit
+(`THIRD_PARTY.md`, "technical-writing and humanizer").
+
 Markdown is the source; Office files are generated (skill `audit-publishing`):
 
 ```zsh
@@ -292,6 +296,8 @@ brew install pandoc marp-cli     # once
 pandoc .audit/07-final-report.md -o .audit/07-final-report.docx --reference-doc=<council-template.docx>
 pandoc .audit/09-briefing.slides.md -o .audit/09-briefing.pptx --reference-doc=<council-template.pptx>
 marp .audit/09-briefing.slides.md --pdf -o .audit/09-briefing.pdf
+TW=~/.local/share/agent-skills/agent-skills-c33d852/plugins/writing/skills/technical-writing
+python3 -I "$TW/scripts/ste-lint.py" .audit/07-final-report.md   # advisory prose check
 ```
 Edit the Markdown and regenerate; don't edit the Word or PowerPoint copies.
 
