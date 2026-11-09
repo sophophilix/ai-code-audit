@@ -1,0 +1,11 @@
+{
+ "mustFind": [
+  {"file": "lib/a.js", "line": 1, "directive": "eslint-disable-next-line", "rules": ["no-floating-promises"], "has_reason": true},
+  {"file": "lib/a.js", "line": 3, "directive": "eslint-disable", "rules": ["all"], "has_reason": false},
+  {"file": "lib/a.js", "line": 4, "directive": "@ts-ignore", "has_reason": false},
+  {"file": "lib/a.js", "line": 5, "directive": "nosemgrep", "rules": ["javascript.lang.security.audit.eval"], "has_reason": false},
+  {"file": "lib/a.js", "line": 6, "directive": "gitleaks:allow", "has_reason": false},
+  {"file": "lib/a.js", "line": 7, "directive": "istanbul ignore", "rules": ["next"], "has_reason": false}
+ ],
+ "mustNotFind": [{"file": "lib/prose.js"}]
+}

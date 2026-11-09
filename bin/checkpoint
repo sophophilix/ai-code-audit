@@ -1,0 +1,27 @@
+#!/bin/sh
+# Commit .audit/ (and nothing else) on an audit/* branch, so a run can be
+# rolled back or resumed from a known point. Never pushes.
+#   .audit-kit/bin/checkpoint "stage 2 security pass a: gate passed"
+set -eu
+
+msg=${1:-"audit checkpoint"}
+branch=$(git rev-parse --abbrev-ref HEAD)
+case "$branch" in
+  audit/*) ;;
+  *) echo "checkpoint: refusing, not on an audit/* branch ($branch)" >&2; exit 2 ;;
+esac
+
+outside=$(git status --porcelain -- . ':(exclude).audit' | head -5)
+if [ -n "$outside" ]; then
+  echo "checkpoint: refusing, changes outside .audit/ (circuit breaker):" >&2
+  echo "$outside" >&2
+  exit 3
+fi
+
+git add -- .audit
+if git diff --cached --quiet -- .audit; then
+  echo "checkpoint: nothing new"
+  exit 0
+fi
+git commit -q -m "audit checkpoint: $msg" -- .audit
+git rev-parse --short HEAD

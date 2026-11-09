@@ -1,0 +1,586 @@
+{
+  "$defs": {
+    "CheckResult": {
+      "additionalProperties": false,
+      "description": "The pass's answer for one check in its brief (OUT-U6).",
+      "properties": {
+        "check": {
+          "description": "a CHECK-ID from the brief's list",
+          "minLength": 1,
+          "title": "Check",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "description": "for not applicable: why, in a few words",
+          "title": "Note",
+          "type": "string"
+        },
+        "result": {
+          "enum": [
+            "found",
+            "not found",
+            "not applicable"
+          ],
+          "title": "Result",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check",
+        "result"
+      ],
+      "title": "CheckResult",
+      "type": "object"
+    },
+    "Comment": {
+      "additionalProperties": false,
+      "description": "A comment that claims what the code does, checked against the code.",
+      "properties": {
+        "claim": {
+          "minLength": 1,
+          "title": "Claim",
+          "type": "string"
+        },
+        "code_lines": {
+          "description": "the lines the claim is about, e.g. 40-52",
+          "title": "Code Lines",
+          "type": "string"
+        },
+        "excerpt": {
+          "description": "the comment, copied verbatim",
+          "minLength": 1,
+          "title": "Excerpt",
+          "type": "string"
+        },
+        "location": {
+          "description": "file:line of the comment",
+          "minLength": 1,
+          "title": "Location",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "agrees",
+            "disagrees",
+            "not shown here"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "claim",
+        "location",
+        "excerpt",
+        "code_lines",
+        "verdict"
+      ],
+      "title": "Comment",
+      "type": "object"
+    },
+    "Edge": {
+      "additionalProperties": false,
+      "description": "A question only another file can answer.",
+      "properties": {
+        "question": {
+          "description": "one line, used as the heading",
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "resolve_in": {
+          "description": "where the answer would be",
+          "minLength": 1,
+          "title": "Resolve In",
+          "type": "string"
+        },
+        "unknown": {
+          "description": "what this file can't show",
+          "minLength": 1,
+          "title": "Unknown",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question",
+        "unknown",
+        "resolve_in"
+      ],
+      "title": "Edge",
+      "type": "object"
+    },
+    "Experiment": {
+      "additionalProperties": false,
+      "description": "A measurement that could prove a static claim false.",
+      "properties": {
+        "hypothesis": {
+          "minLength": 1,
+          "title": "Hypothesis",
+          "type": "string"
+        },
+        "measure": {
+          "minLength": 1,
+          "title": "Measure",
+          "type": "string"
+        },
+        "refuted_if": {
+          "minLength": 1,
+          "title": "Refuted If",
+          "type": "string"
+        },
+        "vary": {
+          "description": "the input to vary, and its sizes",
+          "minLength": 1,
+          "title": "Vary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hypothesis",
+        "vary",
+        "measure",
+        "refuted_if"
+      ],
+      "title": "Experiment",
+      "type": "object"
+    },
+    "Fact": {
+      "additionalProperties": false,
+      "description": "An export, import, route, environment read, state, timer or outbound call.",
+      "properties": {
+        "excerpt": {
+          "description": "copied verbatim from the line",
+          "minLength": 1,
+          "title": "Excerpt",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "export",
+            "import",
+            "route",
+            "environment",
+            "state",
+            "timer",
+            "outbound",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "location": {
+          "description": "file:line in this unit",
+          "minLength": 1,
+          "title": "Location",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "location",
+        "excerpt"
+      ],
+      "title": "Fact",
+      "type": "object"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "description": "A finding in the audit-findings format; the kit assigns its ID.",
+      "properties": {
+        "category": {
+          "enum": [
+            "security",
+            "privacy",
+            "compliance",
+            "reliability",
+            "maintainability",
+            "operations",
+            "performance",
+            "cost",
+            "accessibility",
+            "architecture",
+            "testing",
+            "governance"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "edges": {
+          "description": "numbers (from 1) of the open edges it depends on",
+          "items": {
+            "type": "integer"
+          },
+          "title": "Edges",
+          "type": "array"
+        },
+        "effort": {
+          "enum": [
+            "S",
+            "M",
+            "L"
+          ],
+          "title": "Effort",
+          "type": "string"
+        },
+        "evidence": {
+          "default": "",
+          "description": "built from location and excerpt if empty",
+          "title": "Evidence",
+          "type": "string"
+        },
+        "excerpt": {
+          "description": "1-3 lines copied verbatim",
+          "minLength": 1,
+          "title": "Excerpt",
+          "type": "string"
+        },
+        "impact": {
+          "minLength": 1,
+          "title": "Impact",
+          "type": "string"
+        },
+        "key": {
+          "description": "<CHECK-ID>:<this unit's file>",
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "location": {
+          "description": "file:line or file:start-end",
+          "minLength": 1,
+          "title": "Location",
+          "type": "string"
+        },
+        "packages": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Packages",
+          "type": "array"
+        },
+        "recommendation": {
+          "minLength": 1,
+          "title": "Recommendation",
+          "type": "string"
+        },
+        "related": {
+          "default": "",
+          "title": "Related",
+          "type": "string"
+        },
+        "searched": {
+          "description": "`<regex>` in `<paths>`, for a claim of absence",
+          "items": {
+            "type": "string"
+          },
+          "title": "Searched",
+          "type": "array"
+        },
+        "severity": {
+          "enum": [
+            "critical",
+            "high",
+            "medium",
+            "low",
+            "info"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "sources": {
+          "description": "official URLs, or 'none \u2013 reviewer judgement'",
+          "minLength": 1,
+          "title": "Sources",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "trigger": {
+          "default": "",
+          "description": "required for critical and high",
+          "title": "Trigger",
+          "type": "string"
+        },
+        "verification": {
+          "description": "verified: this unit's code and scan rows show everything the finding claims; unverified: it depends on another file, a rendered page or a scan that didn't run",
+          "enum": [
+            "verified",
+            "unverified"
+          ],
+          "title": "Verification",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "title",
+        "category",
+        "severity",
+        "confidence",
+        "verification",
+        "location",
+        "excerpt",
+        "description",
+        "impact",
+        "recommendation",
+        "sources",
+        "effort"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "Flow": {
+      "additionalProperties": false,
+      "description": "A path from untrusted input to a sink, within this unit.",
+      "properties": {
+        "cwe": {
+          "pattern": "^CWE-\\d+$",
+          "title": "Cwe",
+          "type": "string"
+        },
+        "sink": {
+          "description": "file:line of the sink",
+          "minLength": 1,
+          "title": "Sink",
+          "type": "string"
+        },
+        "sink_excerpt": {
+          "minLength": 1,
+          "title": "Sink Excerpt",
+          "type": "string"
+        },
+        "source": {
+          "description": "file:line where the input enters",
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "source_excerpt": {
+          "minLength": 1,
+          "title": "Source Excerpt",
+          "type": "string"
+        },
+        "validation": {
+          "description": "file:line of validation or encoding, or 'none in this file'",
+          "title": "Validation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "source_excerpt",
+        "sink",
+        "sink_excerpt",
+        "validation",
+        "cwe"
+      ],
+      "title": "Flow",
+      "type": "object"
+    },
+    "Function": {
+      "additionalProperties": false,
+      "description": "One function, with its complexity hypothesis (ADR 0002 D5).",
+      "properties": {
+        "complexity": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "from the lint rows, or null if not scanned",
+          "title": "Complexity"
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "title": "Confidence",
+          "type": "string"
+        },
+        "controlled_by": {
+          "enum": [
+            "attacker",
+            "user",
+            "nobody",
+            "not applicable"
+          ],
+          "title": "Controlled By",
+          "type": "string"
+        },
+        "growth": {
+          "description": "growth class, e.g. O(n), O(n^2), constant",
+          "title": "Growth",
+          "type": "string"
+        },
+        "growth_lines": {
+          "description": "the lines that cause the growth, or 'none'",
+          "title": "Growth Lines",
+          "type": "string"
+        },
+        "lines": {
+          "pattern": "^\\d+-\\d+$",
+          "title": "Lines",
+          "type": "string"
+        },
+        "n": {
+          "description": "what n is, or 'none'",
+          "title": "N",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "runs_on": {
+          "enum": [
+            "request",
+            "start-up",
+            "timer",
+            "event",
+            "other",
+            "unknown"
+          ],
+          "title": "Runs On",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "lines",
+        "complexity",
+        "n",
+        "controlled_by",
+        "growth",
+        "growth_lines",
+        "runs_on",
+        "confidence"
+      ],
+      "title": "Function",
+      "type": "object"
+    }
+  },
+  "$id": "https://agent-audit-kit/file-record/1",
+  "additionalProperties": false,
+  "description": "Everything a unit pass returns. Every list is required; empty means none.",
+  "properties": {
+    "checks": {
+      "description": "one answer for every check ID the brief lists, in any order",
+      "items": {
+        "$ref": "#/$defs/CheckResult"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "comments": {
+      "items": {
+        "$ref": "#/$defs/Comment"
+      },
+      "title": "Comments",
+      "type": "array"
+    },
+    "edges": {
+      "items": {
+        "$ref": "#/$defs/Edge"
+      },
+      "title": "Edges",
+      "type": "array"
+    },
+    "experiments": {
+      "items": {
+        "$ref": "#/$defs/Experiment"
+      },
+      "title": "Experiments",
+      "type": "array"
+    },
+    "facts": {
+      "items": {
+        "$ref": "#/$defs/Fact"
+      },
+      "title": "Facts",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "flows": {
+      "items": {
+        "$ref": "#/$defs/Flow"
+      },
+      "title": "Flows",
+      "type": "array"
+    },
+    "functions": {
+      "items": {
+        "$ref": "#/$defs/Function"
+      },
+      "title": "Functions",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "still_to_check_by_hand": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Still To Check By Hand",
+      "type": "array"
+    },
+    "unit": {
+      "pattern": "^u\\d{3,}$",
+      "title": "Unit",
+      "type": "string"
+    }
+  },
+  "required": [
+    "unit",
+    "checks",
+    "facts",
+    "comments",
+    "flows",
+    "functions",
+    "findings",
+    "edges",
+    "limitations"
+  ],
+  "title": "agent-audit-kit file review pass output",
+  "type": "object"
+}

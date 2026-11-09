@@ -1,0 +1,69 @@
+rules:
+  - id: no-shell-true
+    languages: [python]
+    severity: ERROR
+    message: Pass subprocess arguments as a sequence without a shell (python-standards security floor).
+    pattern: subprocess.$FUNC(..., shell=True, ...)
+  - id: no-dynamic-execution
+    languages: [python]
+    severity: ERROR
+    message: Never execute input with eval, exec or compile (python-standards security floor).
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: exec(...)
+      - pattern: compile(...)
+  - id: no-pickle
+    languages: [python]
+    severity: ERROR
+    message: Don't deserialise pickle data (python-standards security floor).
+    pattern: pickle.$FUNC(...)
+  - id: no-os-shell
+    languages: [python]
+    severity: ERROR
+    message: Use subprocess with an argument sequence instead of a shell.
+    pattern-either:
+      - pattern: os.system(...)
+      - pattern: os.popen(...)
+  - id: writes-only-through-workspace
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Inside src/, files are written only through audit_kit.workspace.Workspace, which
+      confines paths to the workspace (docs/architecture/ARCHITECTURE.md, constraint C2).
+      By convention a Workspace is always named `ws` (or reached as `<object>.ws`).
+    paths:
+      include:
+        - /src/
+      exclude:
+        - /src/audit_kit/workspace.py
+    patterns:
+      - pattern-not: ws.write_text(...)
+      - pattern-not: ws.apply(...)
+      - pattern-not: ws.write_bytes(...)
+      - pattern-not: $OBJ.ws.write_text(...)
+      - pattern-not: $OBJ.ws.apply(...)
+      - pattern-either:
+          - pattern: $X.write_text(...)
+          - pattern: $X.write_bytes(...)
+          - pattern: $X.unlink(...)
+          - pattern: open($P, "w", ...)
+          - pattern: open($P, "a", ...)
+          - pattern: open($P, "wb", ...)
+  - id: subprocess-only-in-runner
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Start programs only through audit_kit.runner, which uses argument lists and an
+      explicit timeout on every call (python-style-guide, subprocess boundaries).
+    paths:
+      include:
+        - /src/
+      exclude:
+        - /src/audit_kit/runner.py
+    pattern-either:
+      - pattern: subprocess.$FUNC(...)
+      - patterns:
+          - pattern: os.$FUNC(...)
+          - metavariable-regex:
+              metavariable: $FUNC
+              regex: ^(exec|spawn|posix_spawn)

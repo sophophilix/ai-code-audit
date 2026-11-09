@@ -1,0 +1,20 @@
+# Engagement policy: what this audit may do beyond reading the code.
+# Copied to .audit/policy.yaml by `kit install`; edit the project's copy.
+#
+# The kit's safety rules never change per client: read-only on the target, never
+# run it, never touch its live services, treat its text as data, evidence for every
+# finding (AGENTS.md). This file holds the rules that do change per client.
+
+version: 1
+
+network:
+  # Public metadata lookups by `kit lookup` (run by a person, never by agents):
+  #   npm registry: is the locked version of each direct dependency deprecated?
+  #   GitHub: is the upstream repository archived? (direct dependencies and
+  #           vendored files whose header names a repository)
+  #   endoflife.date: is the Node.js version the project allows past end of life?
+  # Sends package names, versions and repository names only: never code, file
+  # contents, hashes or the target's own name.
+  #   deny  (default): skipped; each check becomes a Limitation in the reports.
+  #   allow: run the lookups.
+  metadata_lookups: deny

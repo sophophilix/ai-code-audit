@@ -1,0 +1,398 @@
+{
+  "$defs": {
+    "AgentPasses": {
+      "additionalProperties": false,
+      "description": "An agent's passes, plus the verifier's optional rule.",
+      "properties": {
+        "passes": {
+          "items": {
+            "$ref": "#/$defs/Pass"
+          },
+          "minItems": 1,
+          "title": "Passes",
+          "type": "array"
+        },
+        "rule": {
+          "anyOf": [
+            {
+              "const": "different_family_from_author",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule"
+        }
+      },
+      "required": [
+        "passes"
+      ],
+      "title": "AgentPasses",
+      "type": "object"
+    },
+    "Agents": {
+      "additionalProperties": false,
+      "description": "Every agent the runbook starts. The file review's two are optional.",
+      "properties": {
+        "accessibility": {
+          "$ref": "#/$defs/AgentPasses"
+        },
+        "architect": {
+          "$ref": "#/$defs/AgentPasses"
+        },
+        "coordinator": {
+          "$ref": "#/$defs/Coordinator"
+        },
+        "discovery": {
+          "$ref": "#/$defs/AgentPasses"
+        },
+        "engineer": {
+          "$ref": "#/$defs/AgentPasses"
+        },
+        "file-reviewer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentPasses"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "lead-reviewer": {
+          "$ref": "#/$defs/AgentPasses"
+        },
+        "security": {
+          "$ref": "#/$defs/AgentPasses"
+        },
+        "tracer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgentPasses"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "verifier": {
+          "$ref": "#/$defs/AgentPasses"
+        }
+      },
+      "required": [
+        "coordinator",
+        "discovery",
+        "architect",
+        "engineer",
+        "security",
+        "accessibility",
+        "verifier",
+        "lead-reviewer"
+      ],
+      "title": "Agents",
+      "type": "object"
+    },
+    "Coordinator": {
+      "additionalProperties": false,
+      "description": "The coordinator runs once, on one model.",
+      "properties": {
+        "model": {
+          "$ref": "#/$defs/ModelChoice"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "title": "Coordinator",
+      "type": "object"
+    },
+    "FileReview": {
+      "additionalProperties": false,
+      "description": "Whether the file review stage runs, and on which units for a pilot.",
+      "properties": {
+        "mode": {
+          "default": "off",
+          "enum": [
+            "off",
+            "pilot",
+            "full"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "pilot_units": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Pilot Units",
+          "type": "array"
+        }
+      },
+      "title": "FileReview",
+      "type": "object"
+    },
+    "Harness": {
+      "additionalProperties": false,
+      "description": "An agent tool and the providers it can run.",
+      "properties": {
+        "invoke": {
+          "default": "",
+          "title": "Invoke",
+          "type": "string"
+        },
+        "providers": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Providers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "providers"
+      ],
+      "title": "Harness",
+      "type": "object"
+    },
+    "Limits": {
+      "additionalProperties": false,
+      "description": "Concurrency and interruption settings.",
+      "properties": {
+        "lock_stale_minutes": {
+          "default": 30,
+          "minimum": 1,
+          "title": "Lock Stale Minutes",
+          "type": "integer"
+        },
+        "max_parallel_passes": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Max Parallel Passes",
+          "type": "integer"
+        },
+        "on_rate_limit": {
+          "const": "stop",
+          "default": "stop",
+          "title": "On Rate Limit",
+          "type": "string"
+        }
+      },
+      "title": "Limits",
+      "type": "object"
+    },
+    "ModelChoice": {
+      "additionalProperties": false,
+      "description": "A provider, model and harness.",
+      "properties": {
+        "harness": {
+          "minLength": 1,
+          "title": "Harness",
+          "type": "string"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "provider": {
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "model",
+        "harness"
+      ],
+      "title": "ModelChoice",
+      "type": "object"
+    },
+    "Pass": {
+      "additionalProperties": false,
+      "description": "One independent run of an agent.",
+      "properties": {
+        "harness": {
+          "minLength": 1,
+          "title": "Harness",
+          "type": "string"
+        },
+        "label": {
+          "pattern": "^[a-z0-9-]+$",
+          "title": "Label",
+          "type": "string"
+        },
+        "max_unit_lines": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Unit Lines"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "profiles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Profiles"
+        },
+        "provider": {
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "model",
+        "harness",
+        "label"
+      ],
+      "title": "Pass",
+      "type": "object"
+    },
+    "Price": {
+      "additionalProperties": false,
+      "description": "USD per million tokens, for estimates only.",
+      "properties": {
+        "cache_read": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cache Read"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        }
+      },
+      "title": "Price",
+      "type": "object"
+    },
+    "Provider": {
+      "additionalProperties": false,
+      "description": "Who runs a model, and whether that use is approved.",
+      "properties": {
+        "approved_in_project_md": {
+          "default": false,
+          "title": "Approved In Project Md",
+          "type": "boolean"
+        },
+        "family": {
+          "minLength": 1,
+          "title": "Family",
+          "type": "string"
+        },
+        "region": {
+          "default": "",
+          "title": "Region",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family"
+      ],
+      "title": "Provider",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The whole of .audit/models.yaml.",
+  "properties": {
+    "agents": {
+      "$ref": "#/$defs/Agents"
+    },
+    "file_review": {
+      "$ref": "#/$defs/FileReview"
+    },
+    "harnesses": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Harness"
+      },
+      "minProperties": 1,
+      "title": "Harnesses",
+      "type": "object"
+    },
+    "limits": {
+      "$ref": "#/$defs/Limits"
+    },
+    "prices": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Price"
+      },
+      "title": "Prices",
+      "type": "object"
+    },
+    "providers": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Provider"
+      },
+      "minProperties": 1,
+      "title": "Providers",
+      "type": "object"
+    },
+    "version": {
+      "const": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "version",
+    "providers",
+    "harnesses",
+    "agents"
+  ],
+  "title": "agent-audit-kit models.yaml",
+  "type": "object"
+}

@@ -1,0 +1,10 @@
+{
+ "mustFind": [
+  {"class": "vendored", "file": "public/vendor/jquery.js", "line": 3, "kind": "browser storage read"},
+  {"class": "vendored", "file": "public/vendor/jquery.js", "line": 3, "kind": "network"},
+  {"class": "vendored", "file": "public/vendor/jquery.js", "line": 4, "kind": "code from strings"},
+  {"class": "vendored", "file": "public/vendor/jquery.js", "kind": "storage read and network call in one file"},
+  {"class": "own", "file": "lib/schema.js", "line": 1, "kind": "generated claim"}
+ ],
+ "mustNotFind": [{"file": "lib/schema.js", "kind": "network"}]
+}

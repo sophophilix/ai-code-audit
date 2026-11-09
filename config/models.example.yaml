@@ -1,0 +1,112 @@
+# yaml-language-server: $schema=../.audit-kit/config/models.schema.json
+# Model assignment for an audit run.
+# Copy to .audit/models.yaml in the audit workspace and edit there.
+# `make validate` checks this file against config/models.schema.json plus the rules
+# a schema can't express (providers approved, regions recorded, model ids filled in,
+# verifier rule satisfiable). Pre-flight requires .audit/validation.md to say pass.
+#
+# Concepts
+#   provider : who runs the model (and processes the code you send it)
+#   harness  : the agent tool that runs the prompt (reads files, runs shell)
+#   pass     : one independent run of an agent. Several passes = independent
+#              reviews by different models, merged by the lead reviewer.
+#   profiles : optional. Limit a pass to some profiles (e.g. a pass that
+#              reviews only the database code with the mssql profile).
+#
+# Profiles (node-express, mssql, ...) are knowledge, not agents. To give a
+# stack its own reviewer, add a pass with `profiles:` to the relevant agent,
+# as security does below.
+
+version: 1
+
+limits:
+  max_parallel_passes: 1     # passes running at once. Raise only if your plan's rate limits allow it
+  lock_stale_minutes: 30     # a LOCK older than this may be taken over (the coordinator logs it)
+  on_rate_limit: stop        # stop: mark the pass interrupted and tell the tech lead. Never retry in a loop
+
+prices:
+  # USD per million tokens, for estimates only (Claude Code reports cost itself
+  # through OpenTelemetry). Fill these in from each provider's current price list.
+  # claude-opus-5-5:   { input: null, output: null, cache_read: null }
+  # <openai-model-id>: { input: null, output: null, cache_read: null }
+
+providers:
+  anthropic:
+    family: claude
+    approved_in_project_md: true      # pre-flight checks this against project.md
+    region: ""                        # where inference is processed, e.g. "Australia East via <platform>"
+  openai:
+    family: gpt
+    approved_in_project_md: false
+    region: ""
+  google:
+    family: gemini
+    approved_in_project_md: false
+    region: ""
+
+harnesses:
+  # Commands are illustrative. Check them against your installed versions,
+  # and run every harness read-only, with no network except allowed docs.
+  claude-code: { providers: [anthropic], invoke: "claude -p --agent <agent-file>" }
+  codex:       { providers: [openai],    invoke: "codex exec <prompt>" }
+  gemini-cli:  { providers: [google],    invoke: "gemini -p <prompt>" }
+
+agents:
+  coordinator:
+    model: { provider: anthropic, model: claude-opus-5-5, harness: claude-code }
+
+  discovery:
+    passes:
+      - { label: a, provider: anthropic, model: claude-sonnet-5-5, harness: claude-code }
+
+  architect:
+    passes:
+      - { label: a, provider: anthropic, model: claude-opus-5-5, harness: claude-code }
+
+  engineer:
+    passes:
+      - { label: a, provider: anthropic, model: claude-sonnet-5-5, harness: claude-code }
+
+  security:
+    passes:   # two providers review independently; agreement is reported by Key
+      - { label: a, provider: anthropic, model: claude-opus-5-5, harness: claude-code }
+      - { label: b, provider: openai,    model: "<openai-model-id>", harness: codex }
+      # A stack-specific pass: database code only, with the mssql profile
+      # - { label: sql, provider: openai, model: "<openai-model-id>", harness: codex, profiles: [mssql] }
+
+  accessibility:
+    passes:
+      - { label: a, provider: google, model: "<gemini-model-id>", harness: gemini-cli }
+
+  verifier:
+    rule: different_family_from_author   # each finding is checked by a model family that didn't write it
+    passes:
+      - { label: claude, provider: anthropic, model: claude-opus-5-5, harness: claude-code }
+      - { label: gpt,    provider: openai,    model: "<openai-model-id>", harness: codex }
+
+  lead-reviewer:
+    passes:
+      - { label: a, provider: anthropic, model: claude-opus-5-5, harness: claude-code }
+
+  # File review (ADR 0002): optional until file_review.mode is pilot or full.
+  # `kit review` runs these passes itself with `claude -p` (ADR 0007), so they
+  # must use the claude-code harness; limits.max_parallel_passes applies.
+  file-reviewer:
+    passes:
+      - { label: a, provider: anthropic, model: claude-sonnet-5-5, harness: claude-code }
+      # A pass with max_unit_lines takes only units that short. Don't give short
+      # units to Haiku: in the 0.16.0 eval, 44% of its records failed the
+      # evidence checks, against 13% for Sonnet (ADR 0007).
+
+  tracer:
+    passes:
+      - { label: a, provider: anthropic, model: claude-sonnet-5-5, harness: claude-code }
+
+# off | pilot | full. A pilot reviews only the units the tech lead picks from
+# .audit/work/files/units.tsv, to measure cost and accuracy first (ADR 0002 D9).
+file_review:
+  mode: "off"
+  pilot_units: []
+
+# Fallback when nothing else is approved: one provider, but different
+# models for authors and verifier, e.g. author = sonnet, verifier = opus.

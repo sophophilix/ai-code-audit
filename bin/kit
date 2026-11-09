@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# agent-audit-kit command line. Every command is implemented in Python
+# (src/audit_kit) and runs from the kit's locked environment; `bin/kit help` lists them.
+# Settings (environment): AUDIT_PROJECTS_DIR, AUDIT_WORKSPACES_DIR, DRAWIO_SKILL_DIR, JSCPD_BIN.
+set -euo pipefail
+KIT_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec uv run --quiet --frozen --project "$KIT_HOME" audit-kit "$@"

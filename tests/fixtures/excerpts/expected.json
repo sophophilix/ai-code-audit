@@ -1,0 +1,1 @@
+{"check": "OUT-F7", "mustFail": ["SEC-004", "SEC-005", "SEC-006"], "mustPass": ["SEC-001", "SEC-002", "SEC-003"]}

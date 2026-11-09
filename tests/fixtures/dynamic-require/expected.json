@@ -1,0 +1,13 @@
+{
+ "mustFind": [
+  {"kind": "dynamic import", "file": "server.js", "line": 3},
+  {"kind": "dynamic import", "file": "server.js", "line": 4},
+  {"kind": "unresolved import", "file": "server.js", "line": 5},
+  {"kind": "eval", "file": "server.js", "line": 7},
+  {"kind": "string timer", "file": "server.js", "line": 8},
+  {"kind": "new Function", "file": "server.js", "line": 9},
+  {"kind": "eval", "file": "public/index.html", "line": 4}
+ ],
+ "mustNotFind": [{"file": "server.js", "line": 1}, {"file": "server.js", "line": 6}],
+ "inlineScriptGap": "public/index.html"
+}
