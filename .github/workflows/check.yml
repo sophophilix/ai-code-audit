@@ -1,0 +1,73 @@
+# Every quality gate from `make check`, run from uv.lock (python-standards).
+# Actions are pinned to a commit; Dependabot proposes updates after 14 days.
+# The client-terms hook can't run here: its term list stays on the maintainer's
+# machine (bin/check-client-terms).
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: gates (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.11.29"
+          python-version: "3.11"
+          enable-cache: true
+      - name: Sync the locked environment
+        run: uv sync --frozen
+      - name: ruff check
+        run: uv run --frozen ruff check .
+      - name: ruff format
+        run: uv run --frozen ruff format --check .
+      - name: mypy
+        run: uv run --frozen mypy src tests
+      - name: bandit
+        run: uv run --frozen bandit -q -c pyproject.toml -r src
+      - name: semgrep (local rules only)
+        run: uv run --frozen semgrep scan --config .semgrep.yml --metrics off --error --quiet src
+      - name: pytest with coverage
+        run: uv run --frozen pytest --cov --cov-branch
+      - name: pip-audit (runtime dependencies)
+        run: |
+          f="$(mktemp)"
+          uv export --frozen --no-dev --no-emit-project --no-hashes --format requirements.txt --output-file "$f" >/dev/null
+          uv run --frozen pip-audit --strict --no-deps --requirement "$f"
+
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: gitleaks (full history)
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -fsSL -o gl.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gl.tgz" | sha256sum --check --strict
+          tar -xzf gl.tgz gitleaks
+          ./gitleaks git --no-banner --redact .
