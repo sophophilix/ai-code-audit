@@ -165,6 +165,23 @@ def excerpt_problem(
         lines_of: Returns a file's lines, or None if unreadable; pass a cached
             reader when checking many excerpts.
     """
+    problem = _excerpt_problem(ws, location, excerpt, lines_of)
+    if problem and "\\|" in excerpt:
+        # A Markdown table cell escapes `|`; Python's `X | None` is common in excerpts.
+        if (
+            _excerpt_problem(ws, location, excerpt.replace("\\|", "|"), lines_of)
+            is None
+        ):
+            return None
+    return problem
+
+
+def _excerpt_problem(
+    ws: Workspace,
+    location: str,
+    excerpt: str,
+    lines_of: Callable[[str], list[str] | None] | None,
+) -> str | None:
     match = LOCATION.match(location)
     if not match or not match.group(2):
         return None

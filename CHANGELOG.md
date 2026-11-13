@@ -57,6 +57,10 @@ audit and no Python rules (ADR 0010).
   ecosystem the target doesn't hold, so a brief never reads an earlier run's file.
 - `audit_kit.__version__` said 0.18.0. A test now keeps it, `pyproject.toml` and
   `VERSION` the same.
+- **Fixed: excerpts with `|` failed OUT-F7.** Record tables escape `|` as `\|`, and
+  the check compared the escaped text with the source. Python's `X | None` made 19
+  of 214 records fail in the first Python audit. The check now accepts the escaped
+  form when the unescaped one matches.
 - `kit doctor`, `make help` and `kit --help` say `ai-code-audit`. Ruff is an
   optional tool that `kit tools` installs.
 

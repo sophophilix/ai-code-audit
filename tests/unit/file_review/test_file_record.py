@@ -103,6 +103,36 @@ def test_any_line_quoted_as_the_kit_quotes_it_matches_itself(line: str) -> None:
     assert problem is None
 
 
+@given(
+    st.text(
+        alphabet=st.characters(blacklist_categories=("Cs", "Cc", "Zl", "Zp")),
+        min_size=1,
+        max_size=60,
+    ).filter(
+        lambda s: (
+            s.strip()
+            and "****" not in s
+            and "..." not in s
+            and "…" not in s
+            and "`" not in s
+        )
+    )
+)
+def test_an_excerpt_in_a_record_table_cell_matches_its_line(line: str) -> None:
+    lines = {"a.py": [line]}
+    cell = file_record._cell(file_record.quoted(line))
+    problem = excerpt_problem(Workspace(Path(".")), "a.py:1", cell, lines.get)
+    assert problem is None
+
+
+def test_a_python_union_excerpt_escaped_in_a_table_matches() -> None:
+    lines = {"a.py": ["    review_id: UUID | None = None"]}
+    problem = excerpt_problem(
+        Workspace(Path(".")), "a.py:1", "`review_id: UUID \\| None = None`", lines.get
+    )
+    assert problem is None
+
+
 def write_record(ws: Workspace, route: Unit, make_output: Output) -> str:
     meta = brief.read_meta(ws, route.id)
     assert meta is not None
