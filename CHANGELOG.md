@@ -69,6 +69,8 @@ audit and no Python rules (ADR 0010).
 - **Suppression reasons above the line count.** `suppressions.json` treats a
   whole-line comment directly above a suppressed line as its reason, so a
   documented suppression isn't reported as unexplained.
+- **Fixed: OUT-R1 rejected trace and file-record IDs in the report.** `kit verify`
+  checked the report's IDs before it loaded the traces' and records' findings.
 - `kit doctor`, `make help` and `kit --help` say `ai-code-audit`. Ruff is an
   optional tool that `kit tools` installs.
 
