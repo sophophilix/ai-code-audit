@@ -222,6 +222,15 @@ def _validate(args: argparse.Namespace, s: KitSettings) -> int:
     passed = _validate_workspace(
         Workspace(path), args.profiles_dir or s.kit_home / "profiles"
     )
+    try:
+        loc = workspaces.locate(s, str(path))
+    except AuditKitError:
+        return EXIT_OK if passed else EXIT_CHECKS_FAILED
+    for name in workspaces.config_drift(loc):
+        say(
+            f"note    .audit/{name} differs from {loc.project / name}; the workspace "
+            "copy is the one checked. Copy the project's over if you edited it there."
+        )
     return EXIT_OK if passed else EXIT_CHECKS_FAILED
 
 

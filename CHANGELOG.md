@@ -37,6 +37,9 @@ audit and no Python rules (ADR 0010).
   is identical to the root licence is now the repository's own code.
 - **Fixed: binary files counted as text.** A PNG under `docs/` was counted as
   5,499 lines.
+- `kit validate` notes each of `project.md`, `models.yaml` and `policy.yaml` whose
+  workspace copy differs from the project's, since `kit install` keeps the
+  workspace copy.
 - `kit doctor`, `make help` and `kit --help` say `ai-code-audit`. Ruff is an
   optional tool that `kit tools` installs.
 
