@@ -23,12 +23,15 @@ from audit_kit.scan_rows import ScanIndex, unit_rows
 from audit_kit.units import Unit
 from audit_kit.workspace import Workspace
 
-GateName = Literal["eslint", "tsc", "semgrep", "knip", "complexity", "duplication"]
+GateName = Literal[
+    "eslint", "tsc", "ruff", "semgrep", "knip", "complexity", "duplication"
+]
 GateStatus = Literal["pass", "fail", "unavailable", "not_applicable"]
 TargetRuns = Literal["runs in CI", "package script only", "not found"]
 GATES: tuple[GateName, ...] = (
     "eslint",
     "tsc",
+    "ruff",
     "semgrep",
     "knip",
     "complexity",
@@ -36,6 +39,8 @@ GATES: tuple[GateName, ...] = (
 )
 # What the kit's own configs cover (config/eslint.config.mjs, scans.tsconfig).
 SCRIPTS = (".js", ".cjs", ".mjs", ".jsx", ".ts", ".tsx", ".mts", ".cts")
+# What config/ruff.audit.toml covers (ADR 0010 D5).
+PYTHON = (".py", ".pyi")
 JSON_OUT = PurePosixPath(".audit/scans/gates.json")
 MD_OUT = PurePosixPath(".audit/scans/gates.md")
 SHOWN = 3
@@ -69,27 +74,32 @@ class _UnitView:
         self.index = index
         self.unit = unit
         self.script = unit.kind == "file" and unit.path.endswith(SCRIPTS)
+        self.python = unit.kind == "file" and unit.path.endswith(PYTHON)
         self.inline = unit.kind == "inline script"
         self.rows = {
             name: [f"{r.line or 'file'}: {r.text}" for r in rows.inside]
             for name, rows in unit_rows(index, unit).items()
         }
 
-    def cannot_judge(self, gate: GateName, source: str, *, listed: bool) -> Gate | None:
+    def cannot_judge(
+        self, gate: GateName, source: str, *, listed: bool, python: bool = False
+    ) -> Gate | None:
         """Return the gate when the tool can't speak for this unit, else None.
 
         Args:
             gate: The gate being decided.
             source: The scan the gate reads.
             listed: Whether the tool lists the files it examined.
+            python: Whether the tool checks Python rather than JavaScript.
         """
-        if self.inline:
+        if self.inline and not python:
             return Gate(gate=gate, status="unavailable", evidence=INLINE_GAP)
-        if not self.script:
+        if not (self.python if python else self.script):
+            language = "Python" if python else "JavaScript"
             return Gate(
                 gate=gate,
                 status="not_applicable",
-                evidence=f"a {self.unit.kind} unit isn't JavaScript",
+                evidence=f"a {self.unit.kind} unit isn't {language}",
             )
         if not self.index.ran(source):
             state = self.index.status.get(source, "not run")
@@ -111,7 +121,8 @@ class _UnitView:
 
 
 def _is_complexity(row: str) -> bool:
-    return row.split(": ", 1)[-1].startswith("complexity:")
+    text = row.split(": ", 1)[-1]
+    return text.startswith(("complexity:", "C901:"))
 
 
 def _knip(view: _UnitView) -> Gate:
@@ -144,8 +155,10 @@ def _duplication(view: _UnitView) -> Gate:
 
 
 def unit_gates(index: ScanIndex, unit: Unit) -> list[Gate]:
-    """Return the six gates for one unit, in a fixed order."""
+    """Return the seven gates for one unit, in a fixed order."""
     view = _UnitView(index, unit)
+    if view.python:
+        return _python_gates(view)
     lint = [r for r in view.rows["lint"] if not _is_complexity(r)]
     complexity = [r for r in view.rows["lint"] if _is_complexity(r)]
     eslint = view.cannot_judge("eslint", "lint", listed=True) or _from_rows(
@@ -166,7 +179,45 @@ def unit_gates(index: ScanIndex, unit: Unit) -> list[Gate]:
         "ESLint complexity rule (10) ran",
         "no function over 10",
     )
-    return [eslint, tsc, semgrep, _knip(view), cyclomatic, _duplication(view)]
+    ruff = _not_applicable("ruff", f"a {view.unit.kind} unit isn't Python")
+    return [eslint, tsc, ruff, semgrep, _knip(view), cyclomatic, _duplication(view)]
+
+
+def _python_gates(view: _UnitView) -> list[Gate]:
+    """Gates for a Python unit: Ruff and Semgrep apply; the JavaScript tools don't."""
+    rows = view.rows["lint-python"]
+    lint = [r for r in rows if not _is_complexity(r)]
+    complexity = [r for r in rows if _is_complexity(r)]
+    ruff = view.cannot_judge("ruff", "lint-python", listed=True, python=True)
+    cyclomatic = view.cannot_judge(
+        "complexity", "lint-python", listed=True, python=True
+    )
+    semgrep = view.cannot_judge("semgrep", "sast", listed=False, python=True)
+    return [
+        _not_applicable("eslint", "a Python unit isn't JavaScript"),
+        _not_applicable("tsc", "a Python unit isn't JavaScript"),
+        ruff
+        or _from_rows(
+            "ruff", lint, "Ruff ran with the kit's config", "no rows in this unit"
+        ),
+        semgrep
+        or _from_rows(
+            "semgrep",
+            view.rows["sast"],
+            "Semgrep ran",
+            "no results here (Semgrep doesn't list the files it scanned)",
+        ),
+        _not_applicable("knip", "knip checks JavaScript modules, not Python"),
+        cyclomatic
+        or _from_rows(
+            "complexity", complexity, "Ruff C901 (10) ran", "no function over 10"
+        ),
+        _duplication(view),
+    ]
+
+
+def _not_applicable(gate: GateName, why: str) -> Gate:
+    return Gate(gate=gate, status="not_applicable", evidence=why)
 
 
 def render_table(gates: list[Gate]) -> str:
@@ -198,6 +249,7 @@ ESLINT = re.compile(r"\beslint\b|\bnext lint\b")
 TOOL_PATTERNS: dict[GateName, re.Pattern[str]] = {
     "eslint": ESLINT,
     "tsc": re.compile(r"\b(?:vue-)?tsc\b"),
+    "ruff": re.compile(r"\bruff\b"),
     "semgrep": re.compile(r"\bsemgrep\b"),
     "knip": re.compile(r"\bknip\b"),
     # The target has a complexity gate when it runs ESLint with that rule on.
@@ -220,7 +272,11 @@ KIT_CONFIG: dict[GateName, str] = {
         ".audit/scans/tsconfig.audit.json (checkJs, not strict; the target's "
         "tsconfig isn't used)"
     ),
-    "semgrep": "p/javascript, p/expressjs, p/owasp-top-ten",
+    "ruff": (
+        "config/ruff.audit.toml (the kit's baseline; the target's config and "
+        "suppression comments are ignored)"
+    ),
+    "semgrep": "registry rulesets for the ecosystems present, plus p/owasp-top-ten",
     "knip": "knip with no config, in the sandbox only (ADR 0005)",
     "complexity": "ESLint `complexity` at 10 (kit baseline)",
     "duplication": "jscpd defaults",
@@ -228,6 +284,7 @@ KIT_CONFIG: dict[GateName, str] = {
 KIT_OUTPUT: dict[GateName, str] = {
     "eslint": ".audit/scans/lint.json",
     "tsc": ".audit/scans/typecheck.txt",
+    "ruff": ".audit/scans/lint-python.json",
     "semgrep": ".audit/scans/sast.sarif",
     "knip": ".audit/scans/dynamic/knip.json",
     "complexity": ".audit/scans/lint.json",

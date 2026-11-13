@@ -1,6 +1,46 @@
 # Changelog
 
-## Unreleased: a final report a manager can read
+## 0.19.0 – 2026-11-13: Python targets
+From the first run of the kit on a Python application (a local-first CLI of about
+30,000 lines). Before this release that run had 0 file-review units, no dependency
+audit and no Python rules (ADR 0010).
+- **Ecosystems come from the files.** `audit_kit.ecosystems` finds JavaScript and
+  Python from file names. Scanners, unit boundaries and manifests follow it, and
+  a repository can hold both.
+- **Python units.** Own `.py` and `.pyi` files are units. Files over 1,000 lines
+  are cut at a top-level `def`, `class` or decorator, never between a decorator
+  and its function. `pyproject.toml` is a manifest unit.
+- **Python scans.** Ruff runs with the kit's `config/ruff.audit.toml` and
+  `--ignore-noqa` (`scans/lint-python.json`, plus the files it examined).
+  osv-scanner audits every `uv.lock`, `poetry.lock`, `pdm.lock` and
+  `Pipfile.lock`, not only `package-lock.json`. Semgrep adds `p/python`. Python
+  type checking and unused-code analysis are listed in `MISSING.txt` as not run.
+- **A `ruff` gate.** Units now have seven gates. For Python units, `ruff`,
+  `semgrep`, `complexity` (Ruff `C901` at 10) and `duplication` apply. The
+  JavaScript gates are `not_applicable`.
+- **Python rules.** A new core skill, `python-review`, holds the `PY-*` catalogue,
+  and a new `python` profile holds the `PYAPP-*` stack checks. Shared
+  `ai-generated-code-quality` sections now apply to Python units, with the Ruff
+  rule codes for each `SLOP-*` check.
+- **Python facts.** Suppressions include `# noqa`, `# type: ignore`, `# nosec`,
+  `# pragma: no cover`, `pyright: ignore` and `pylint: disable`. Blind spots
+  include `eval`, `exec`, `compile` and dynamic imports. The sweep finds
+  subprocesses, deserialisation, Python network clients and file writes.
+  Coverage records which Python files Ruff examined.
+- **Detection.** `kit detect` reads `pyproject.toml` (runtime, extras and
+  dependency groups), recognises Python lockfiles, and finds Python AI and Azure
+  dependencies. It proposes the `python` profile.
+- **Fixed: quarantined symlinks.** A target's `CLAUDE.md` that links to
+  `AGENTS.md` made `kit detect` fail its snapshot check. Quarantined symlinks are
+  now recorded at their original paths.
+- **Fixed: first-party plugins counted as vendored.** A folder whose licence file
+  is identical to the root licence is now the repository's own code.
+- **Fixed: binary files counted as text.** A PNG under `docs/` was counted as
+  5,499 lines.
+- `kit doctor`, `make help` and `kit --help` say `ai-code-audit`. Ruff is an
+  optional tool that `kit tools` installs.
+
+### Also in 0.19.0: a final report a manager can read
 - **The lead reviewer writes with `technical-writing`.** It loads the
   `technical-writing` and `humanizer` skills from sophophilix/agent-skills,
   pinned to `c33d852` (`THIRD_PARTY.md`). `audit-publishing` lists where the

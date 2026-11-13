@@ -7,7 +7,15 @@ import re
 from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 
-from audit_kit import code_facts, design_inventory, gates, history, review, units
+from audit_kit import (
+    code_facts,
+    design_inventory,
+    ecosystems,
+    gates,
+    history,
+    review,
+    units,
+)
 from audit_kit.console import ok, say, skip, warn
 from audit_kit.inventory import (
     DATA_PATTERNS,
@@ -46,6 +54,16 @@ LOOKUPS_DENIED = (
 )
 MISSING = SCANS / "MISSING.txt"
 TSCONFIG = SCANS / "tsconfig.audit.json"
+# Semgrep registry rulesets, by the ecosystems the target holds (ADR 0010 D3).
+SEMGREP_RULESETS: dict[ecosystems.Ecosystem, tuple[str, ...]] = {
+    "javascript": ("p/javascript", "p/expressjs"),
+    "python": ("p/python",),
+}
+PYTHON_NOT_RUN = (
+    "typecheck (Python): not run; mypy and pyright need the target's dependencies "
+    "installed, and the kit never installs them (ADR 0010 D3)",
+    "unused (Python): not run; the unused-code analysis reads JavaScript only",
+)
 
 
 def tsconfig(root: Path, excludes: list[str], tsc: Path) -> str:
@@ -168,6 +186,13 @@ def scan(s: KitSettings, given: str, *, force: bool = False) -> None:
     files = sorted({Path(e).name for e in excludes if (root / e).is_file()})
     not_match = "|".join([r"\.min\.js$", *(f"^{re.escape(f)}$" for f in files)])
     scanner = _Scanner(ws, force=force)
+    reviewed = [
+        e.path
+        for e in build(ws).entries
+        if e.kind == "file" and code_facts.kept(e.path, tuple(excludes))
+    ]
+    held = ecosystems.of_paths(reviewed)
+    locks = ecosystems.lockfiles(reviewed)
 
     def write(target: Path, data: bytes) -> None:
         ws.write_text(
@@ -209,25 +234,16 @@ def scan(s: KitSettings, given: str, *, force: bool = False) -> None:
         )
 
     def osv(target: Path) -> None:
-        result = run(
-            [
-                "osv-scanner",
-                "scan",
-                "source",
-                "--format",
-                "json",
-                "-L",
-                "package-lock.json",
-            ],
-            cwd=root,
-            timeout=LONG,
-            check=False,
-        )
+        args: list[str | Path] = ["osv-scanner", "scan", "source", "--format", "json"]
+        for lock in locks:
+            args += ["-L", lock]
+        result = run(args, cwd=root, timeout=LONG, check=False)
         write(target, result.stdout)
 
     def semgrep(target: Path) -> None:
         args: list[str | Path] = ["semgrep", "scan", "--quiet", "--metrics", "off"]
-        for config in ("p/javascript", "p/expressjs", "p/owasp-top-ten"):
+        rulesets = [r for eco in sorted(held) for r in SEMGREP_RULESETS[eco]]
+        for config in (*rulesets, "p/owasp-top-ten"):
             args += ["--config", config]
         for e in excludes:
             args += ["--exclude", e]
@@ -274,11 +290,11 @@ def scan(s: KitSettings, given: str, *, force: bool = False) -> None:
 
     scanner("cloc", "cloc", "cloc.json", cloc)
     scanner("secrets", "gitleaks", "secrets.json", gitleaks)
-    if ws.is_file("package-lock.json"):
+    if locks:
         scanner("deps-audit", "osv-scanner", "deps-audit.json", osv)
     else:
-        skip("deps-audit: no package-lock.json (nothing to audit)")
-        scanner.missing.append("deps-audit: no package-lock.json (nothing to audit)")
+        skip("deps-audit: no lockfile (nothing to audit)")
+        scanner.missing.append("deps-audit: no lockfile (nothing to audit)")
 
     def eslint(target: Path) -> None:
         # The kit's config only; --no-inline-config stops the target's
@@ -310,10 +326,31 @@ def scan(s: KitSettings, given: str, *, force: bool = False) -> None:
         )
         write(root / code_facts.TSC_FILES, listed.stdout)
 
+    def ruff(target: Path) -> None:
+        # The kit's config only; --ignore-noqa stops the target's
+        # suppression comments from hiding anything, as --no-inline-config does for ESLint.
+        base: list[str | Path] = [
+            "ruff", "check", "--config", s.kit_home / "config/ruff.audit.toml",
+            "--no-cache", "--exit-zero", "--force-exclude",
+        ]  # fmt: skip
+        for e in excludes:
+            base += ["--extend-exclude", e]
+        result = run([*base, "--ignore-noqa", "--output-format", "json", "."],
+                     cwd=root, timeout=LONG, check=False)  # fmt: skip
+        write(target, result.stdout)
+        listed = run([*base, "--show-files", "."], cwd=root, timeout=LONG, check=False)
+        write(root / code_facts.RUFF_FILES, listed.stdout)
+
     scanner("sast", "semgrep", "sast.sarif", semgrep)
     scanner("duplication", s.jscpd, "duplication.json", jscpd)
-    scanner("lint", s.eslint, "lint.json", eslint)
-    scanner("typecheck", s.tsc, "typecheck.txt", typecheck)
+    if "javascript" in held:
+        scanner("lint", s.eslint, "lint.json", eslint)
+        scanner("typecheck", s.tsc, "typecheck.txt", typecheck)
+    else:
+        skip("lint, typecheck (JavaScript): no JavaScript or TypeScript to check")
+    if "python" in held:
+        scanner("lint-python", "ruff", "lint-python.json", ruff)
+        scanner.missing += PYTHON_NOT_RUN
     # The unused-code analysis is the kit's own Python, so there is no tool to find.
     if ws.is_file(UNUSED) and ws.size(UNUSED) and not force:
         skip("unused (exists; --force to re-run)")

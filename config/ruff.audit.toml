@@ -1,0 +1,33 @@
+# The kit's Ruff baseline for Python targets (ADR 0010 D3). Passed with --config,
+# so the target's own Ruff settings never apply, and with --ignore-noqa, so its
+# suppressions can't hide a row. Rules are chosen for defects and risk, not style:
+# a row is a lead for a reviewer, never a finding on its own.
+line-length = 120
+target-version = "py311"
+
+[lint]
+select = [
+  "F",        # Pyflakes: undefined names, unused imports and variables
+  "E7", "E9", # statement and syntax errors (E722 bare except)
+  "B",        # bugbear: mutable defaults, late binding, raise without from
+  "S",        # flake8-bandit: security
+  "BLE",      # blind except Exception
+  "DTZ",      # naive datetimes
+  "A001", "A002",
+  "ASYNC",
+  "C901",     # complexity, limit below (same as the ESLint baseline)
+  "PLR0913",  # too many parameters
+  "RET503",   # missing explicit return
+  "SIM105", "SIM115",
+  "T20",      # print left in
+  "ERA001",   # commented-out code
+  "FIX002",   # TODO left in
+  "PT",       # pytest mistakes
+  "RUF006", "RUF009", "RUF012",
+]
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.pylint]
+max-args = 6

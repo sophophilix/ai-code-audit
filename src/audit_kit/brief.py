@@ -31,7 +31,7 @@ ROW_CHARS = 400
 IMPORT_LINE = re.compile(
     r"^\s*(?:import\b|export\s+[^=]*\bfrom\b|(?:const|let|var)\s+[^=]+=\s*require\()"
 )
-SCAN_HEADING = re.compile(r"^### (?P<source>\w+) \(")
+SCAN_HEADING = re.compile(r"^### (?P<source>[\w-]+) \(")
 # A catalogue row starts with its CHECK-ID: `| JS-FLOATING | ...`, `| WCAG-1.4.3 |`.
 CHECK_ROW = re.compile(r"^\| (?P<id>[A-Z][A-Z0-9]*(?:-[A-Z0-9.]+)+) \|", re.M)
 

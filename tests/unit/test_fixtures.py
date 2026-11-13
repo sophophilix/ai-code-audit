@@ -119,3 +119,61 @@ def test_vendor_eval(tmp_path: Path) -> None:
     for unwanted in expected["mustNotFind"]:
         assert not any(matches(e, unwanted) for e in out["entries"]), unwanted
     assert out["counts"]["vendored"]["network"] == 1
+
+
+PY_SOURCE = (
+    "import pickle, subprocess\n"  # 1
+    "x = eval(data)  # noqa: S307 trusted admin input\n"  # 2
+    "y: int = z  # type: ignore[assignment]\n"  # 3
+    "subprocess.run(cmd, shell=True)  # nosec B602\n"  # 4
+    "obj = pickle.loads(blob)\n"  # 5
+    "mod = importlib.import_module(name)\n"  # 6
+    "# eval(commented) is not a blind spot\n"  # 7
+)
+
+
+def python_target(tmp_path: Path) -> Workspace:
+    (tmp_path / "app.py").write_text(PY_SOURCE)
+    return Workspace(tmp_path)
+
+
+def test_python_suppressions_name_their_rules_and_reasons(tmp_path: Path) -> None:
+    ws = python_target(tmp_path)
+    found = {
+        (e["line"], e["directive"]): (e["rules"], e["has_reason"])
+        for e in suppressions(ws, build(ws), ())["entries"]
+    }
+    assert found == {
+        (2, "noqa"): (["S307"], True),
+        (3, "type: ignore"): (["assignment"], False),
+        (4, "nosec"): (["B602"], False),
+    }
+
+
+def test_python_code_from_strings_and_dynamic_imports_are_blind_spots(
+    tmp_path: Path,
+) -> None:
+    ws = python_target(tmp_path)
+    kinds = [(e["line"], e["kind"]) for e in blind_spots(ws, build(ws), ())["entries"]]
+    assert kinds == [(2, "eval"), (6, "dynamic import")]
+
+
+def test_the_sweep_finds_python_subprocess_and_deserialisation(tmp_path: Path) -> None:
+    ws = python_target(tmp_path)
+    report = sweep(ws, build(ws))
+    text = json.dumps(report)
+    assert "subprocess" in text and "deserialisation" in text
+
+
+def test_coverage_names_python_files_ruff_skipped(tmp_path: Path) -> None:
+    ws = python_target(tmp_path)
+    (tmp_path / "other.py").write_text("x = 1\n")
+    (tmp_path / ".audit/scans").mkdir(parents=True)
+    (tmp_path / ".audit/scans/lint-python-files.txt").write_text(f"{tmp_path}/app.py\n")
+    out = coverage(ws, build(ws), ())
+    assert out["tools"]["ruff"] == {"status": "ran", "expected": 2, "examined": 1}
+    assert {
+        "file": "other.py",
+        "tool": "ruff",
+        "reason": "the tool didn't report it",
+    } in out["gaps"]

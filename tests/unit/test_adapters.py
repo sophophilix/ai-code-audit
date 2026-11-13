@@ -375,3 +375,39 @@ def test_lookups_follow_the_engagement_policy(
     scans.lookup(KitSettings.load(), str(world["ws"]))
     assert asked == ["https://api.github.com/repos/o/r"]
     assert json.loads(status.read_text())["policy"] == "allow"
+
+
+def test_a_python_target_gets_ruff_its_lockfile_audit_and_python_rules(
+    world: dict[str, Path],
+) -> None:
+    fake_tools(
+        world["bin"],
+        (
+            "cloc",
+            "gitleaks",
+            "osv-scanner",
+            "semgrep",
+            "jscpd",
+            "eslint",
+            "tsc",
+            "ruff",
+        ),
+    )
+    (world["ws"] / "app.py").write_text("import os\n")
+    (world["ws"] / "uv.lock").write_text("version = 1\n")
+    s = KitSettings.load()
+    scans.scan(s, str(world["ws"]))
+    used = {c[0]: c for c in calls(world["log"])}
+    ruff = next(
+        c for c in calls(world["log"]) if c[0] == "ruff" and "--output-format" in c
+    )
+    assert ruff[ruff.index("--config") + 1] == str(
+        s.kit_home / "config/ruff.audit.toml"
+    )
+    assert "--ignore-noqa" in ruff and "public/vendor" in ruff
+    osv = used["osv-scanner"]
+    assert osv[osv.index("-L") : osv.index("-L") + 2] == ["-L", "package-lock.json"]
+    assert "uv.lock" in osv
+    assert "p/python" in used["semgrep"] and "p/javascript" in used["semgrep"]
+    missing = (world["ws"] / ".audit/scans/MISSING.txt").read_text()
+    assert "typecheck (Python): not run" in missing

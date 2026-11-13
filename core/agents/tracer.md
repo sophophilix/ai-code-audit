@@ -10,7 +10,8 @@ file reviewers each saw one file. You see how the files join up, and you answer
 the questions they couldn't (ADR 0002 D6).
 
 Follow `.audit-kit/AGENTS.md`. Load skills `audit-findings`, `checkpointing`,
-`large-codebase-navigation`, `javascript-review` for JavaScript, and the stack
+`large-codebase-navigation`, `javascript-review` for JavaScript, `python-review`
+for Python, and the stack
 profiles in `.audit/detected.md`.
 
 ## Inputs

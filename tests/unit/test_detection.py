@@ -87,12 +87,36 @@ def test_outputs_are_byte_identical_on_rerun(repo: Path) -> None:
 
 def test_a_language_no_profile_covers_needs_a_person(repo: Path) -> None:
     (repo / "worker").mkdir()
-    (repo / "worker/jobs.py").write_text("import os\n" * 400)
+    (repo / "worker/jobs.go").write_text("package main\n" * 400)
     found = detect(Workspace(repo))
-    assert found.uncovered == ("Python",)
+    assert found.uncovered == ("Go",)
     text = render(found, "c", "v")
-    assert "No profile covers Python" in text
-    assert "Languages (lines in reviewed files): Python 400" in text
+    assert "No profile covers Go" in text
+    assert "Languages (lines in reviewed files): Go 400" in text
+
+
+def test_a_python_project_gets_the_python_profile_and_its_facts(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "app"\ndependencies = ["openai>=1", "typer"]\n'
+        '[dependency-groups]\ntest = ["pytest"]\n'
+    )
+    (tmp_path / "uv.lock").write_text("version = 1\n")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src/app.py").write_text("import openai\n" * 50)
+    found = detect(Workspace(tmp_path))
+    assert "python" in found.resolved
+    assert found.uncovered == ()
+    assert (found.dependencies, found.dev_dependencies) == (2, 1)
+    assert found.lockfiles == ("uv.lock",)
+    assert found.ai_signals == ("pyproject.toml: openai",)
+
+
+def test_a_binary_file_outside_the_binary_class_is_not_counted(tmp_path: Path) -> None:
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/diagram.png").write_bytes(b"\x89PNG\r\n\x1a\n\0\0" + b"\n" * 500)
+    (tmp_path / "app.py").write_text("x = 1\n")
+    found = detect(Workspace(tmp_path))
+    assert "docs/diagram.png" not in dict(found.largest)
 
 
 def test_languages_the_profiles_cover_are_not_flagged(repo: Path) -> None:

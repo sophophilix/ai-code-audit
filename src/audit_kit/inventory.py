@@ -256,6 +256,35 @@ def _clues(ws: Workspace, rel: PurePosixPath, head: bytes) -> tuple[str, str]:
     return upstream, version
 
 
+def _licensed_folders(
+    ws: Workspace, located: dict[str, PurePosixPath]
+) -> frozenset[str]:
+    """Return folders whose licence file marks them as third-party code.
+
+    A copy of the repository's own root licence doesn't: monorepo packages and
+    first-party plugins often carry one (ADR 0010 D7).
+    """
+
+    def sha(rel: PurePosixPath) -> str | None:
+        try:
+            return ws.digest(rel).sha256
+        except WorkspaceError:
+            return None
+
+    root = {
+        h
+        for p, rel in located.items()
+        if "/" not in p and LICENCE_FILE.search(p) and (h := sha(rel))
+    }
+    return frozenset(
+        str(PurePosixPath(p).parent)
+        for p, rel in located.items()
+        if "/" in p
+        and LICENCE_FILE.search(PurePosixPath(p).name)
+        and sha(rel) not in root
+    )
+
+
 def build(ws: Workspace, gitlinks: tuple[tuple[str, str], ...] = ()) -> Inventory:
     """Record every path in the target part of a workspace.
 
@@ -274,14 +303,15 @@ def build(ws: Workspace, gitlinks: tuple[tuple[str, str], ...] = ()) -> Inventor
         skip.add(".claude")
     tree = ws.tree(frozenset(skip))
     located: dict[str, PurePosixPath] = {r.as_posix(): r for r in tree.files}
+    links: dict[str, PurePosixPath] = {r.as_posix(): r for r in tree.skipped_symlinks}
     if ws.exists(QUARANTINE):
-        for rel in Workspace(ws.path(QUARANTINE)).tree(frozenset()).files:
+        held = Workspace(ws.path(QUARANTINE)).tree(frozenset())
+        for rel in held.files:
             located[rel.as_posix()] = QUARANTINE / rel
-    licensed = frozenset(
-        str(PurePosixPath(p).parent)
-        for p in located
-        if "/" in p and LICENCE_FILE.search(PurePosixPath(p).name)
-    )
+        # A target's CLAUDE.md is often a symlink to AGENTS.md.
+        for rel in held.skipped_symlinks:
+            links[rel.as_posix()] = QUARANTINE / rel
+    licensed = _licensed_folders(ws, located)
     attributes = _attributes(ws)
     entries: list[Entry] = []
     problems: list[str] = []
@@ -312,15 +342,15 @@ def build(ws: Workspace, gitlinks: tuple[tuple[str, str], ...] = ()) -> Inventor
                 version,
             )
         )
-    for rel in tree.skipped_symlinks:
+    for path, rel in links.items():
         target = ws.link_target(rel)
         entries.append(
             Entry(
-                rel.as_posix(),
+                path,
                 "symlink",
                 "symlink",
                 f"symlink to {target}, not followed",
-                rel.as_posix(),
+                path,
                 0,
                 "",
                 "",

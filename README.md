@@ -2,6 +2,7 @@
 
 A reusable, harness- and model-independent kit for running an **independent,
 evidence-based code audit with AI agents**, with humans making every decision.
+It audits JavaScript and TypeScript (Node.js, browser) and Python targets.
 
 > **Status: 0.1.0, definitions only.** Agents, skills, profiles, runbook and
 > model configuration are written. The kit has **not yet passed its own
@@ -61,12 +62,13 @@ core/
   agents/                 coordinator, discovery, architect, engineer, security,
                           accessibility, verifier, lead-reviewer
   skills/                 audit-findings, large-codebase-navigation,
+                          javascript-review, python-review, frontend-review,
                           ai-generated-code-quality (anti-slop),
                           architecture-diagrams (rules for the pinned drawio-skill),
                           audit-publishing (Markdown → Marp slides, Pandoc Word/PowerPoint),
                           checkpointing (save after every item, LOCK, resume)
 profiles/                 swappable knowledge, picked per project
-  node-express/  mssql/  azure-architecture/  web-accessibility/
+  node-express/  python/  mssql/  azure-architecture/  web-accessibility/
   nsw-local-government/  ai-governance/
 templates/                project.md (+ example)
 evals/                    finding evals (seeded + known issues) and output checks

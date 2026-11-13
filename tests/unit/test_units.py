@@ -233,3 +233,32 @@ def test_inline_styles_are_their_own_units_and_leave_the_markup(tmp_path: Path) 
     assert [u.part for u in styles] == ["style-1.1", "style-1.2"]
     assert all(u.lines <= MAX_LINES for u in styles)
     assert not any(a.start <= s.start <= a.end for a in markup for s in styles)
+
+
+def test_python_files_and_pyproject_are_units(tmp_path: Path) -> None:
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg/cli.py").write_text("def main() -> None:\n    pass\n")
+    (tmp_path / "pkg/types.pyi").write_text("x: int\n")
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "pkg"\n')
+    ws = Workspace(tmp_path)
+    found, _ = build_units(ws, build(ws), ())
+    assert [(u.path, u.kind) for u in found] == [
+        ("pkg/cli.py", "file"),
+        ("pkg/types.pyi", "file"),
+        ("pyproject.toml", "manifest"),
+    ]
+
+
+def test_a_large_python_file_is_cut_before_a_decorator_not_between(
+    tmp_path: Path,
+) -> None:
+    body = "".join(
+        f"@app.command()\ndef f{i}() -> None:\n" + "    x()\n" * 48 for i in range(30)
+    )
+    (tmp_path / "cli.py").write_text("import x\n" + body)
+    ws = Workspace(tmp_path)
+    found, _ = build_units(ws, build(ws), ())
+    lines = (tmp_path / "cli.py").read_text().splitlines()
+    assert len(found) > 1
+    for unit in found[1:]:
+        assert lines[unit.start - 1].startswith("@app.command()")

@@ -47,7 +47,7 @@ can cite a scan line instead of an opinion:
   installed or run by the kit. Their other rules are style, or need TypeScript.
 
 ## Check catalogue
-<!-- brief: script, component, inline script, sql, markup, stylesheet, inline style -->
+<!-- brief: script, component, inline script, sql, markup, stylesheet, inline style, python -->
 Use these CHECK-IDs in finding Keys (`SLOP-DUP:lib/foo.js`). In the evidence
 column, `lint:<rule>` means a `scans/lint.json` message with that `ruleId`.
 
@@ -75,6 +75,13 @@ parameters, 3 nested callbacks) are prompts to look, not defects. A rule hit is
 a finding only when you can state its consequence. `lint.json` covers `.js`
 files only; inline scripts in HTML are read by hand.
 
+For a Python unit, `lint:<rule>` means a `scans/lint-python.json` row from Ruff
+with the kit's config (ADR 0010). The equivalents: SLOP-DEAD `F401`, `F841`;
+SLOP-SWALLOW `S110`, `S112`, `BLE001`, `SIM105`; SLOP-ASYNC `ASYNC*`; SLOP-LOGIC
+`PLR0124`, `RET503`, `SIM*`; SLOP-GOD `C901` (complexity 10), `PLR0913`
+(parameters); SLOP-LEFTOVER `T20`, `ERA001`, `FIX002`. There's no unused-code
+scan for Python, so search for callers before calling code dead.
+
 ## Dependency manifest
 <!-- brief: manifest -->
 A manifest is the only place a package that nothing uses shows up: no code
@@ -86,7 +93,7 @@ list each one that no own file requires or imports and no script names.
 | SLOP-PHANTOM-DEP | Dependencies declared but unused, used but undeclared, names that look like typosquats of a well-known package, or packages that may not exist (OpenSSF guide: hallucinated packages). Each unused runtime dependency is still installed and shipped, so it widens the supply chain for nothing: Low, Medium if it has install scripts or a known advisory | `unused` rows; the declared names and ranges in this file |
 
 ## Process
-<!-- brief: script, component, inline script, sql, markup, stylesheet, inline style -->
+<!-- brief: script, component, inline script, sql, markup, stylesheet, inline style, python -->
 1. Start with the scans. Deterministic tools give numbers you can repeat.
 2. For each check, find the strongest 1–5 examples and read them in context.
 3. Write one finding per root cause, with Key `SLOP-...:<most affected file>`.
@@ -97,7 +104,7 @@ list each one that no own file requires or imports and no script names.
    dominate, and the order to tackle them (tests before refactors).
 
 ## Rationalisations (and rebuttals)
-<!-- brief: script, component, inline script, sql, markup, stylesheet, inline style -->
+<!-- brief: script, component, inline script, sql, markup, stylesheet, inline style, python -->
 | Excuse | Rebuttal |
 |---|---|
 | "It works, so it's fine." | Working today isn't maintainable tomorrow. Rate the cost of the next change. |
@@ -108,7 +115,7 @@ list each one that no own file requires or imports and no script names.
 | "It's AI code, so rewrite it." | Rewrites lose embedded knowledge. Recommend incremental change behind tests. |
 
 ## Red flags
-<!-- brief: script, component, inline script, sql, markup, stylesheet, inline style -->
+<!-- brief: script, component, inline script, sql, markup, stylesheet, inline style, python -->
 - Calling code dead without searching for dynamic use (string-built requires, routes registered in loops)
 - Slop findings with no example locations
 - Treating style preferences as defects

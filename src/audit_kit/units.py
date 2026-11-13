@@ -1,6 +1,7 @@
 """The file review's work units, listed from the inventory (no AI).
 
-ADR 0002 D1: one unit is one own code file or stylesheet, one section of a file
+ADR 0002 D1: one unit is one own code file (JavaScript, TypeScript, SQL or,
+since ADR 0010, Python) or stylesheet, one section of a file
 over 1,000 lines, one inline `<script>` block, one stretch of markup between
 scripts in an HTML page or template, or one dependency manifest. A unit never holds code from two files. The
 list depends only on the files, so it's the same on every run.
@@ -19,6 +20,7 @@ from audit_kit.workspace import Workspace
 OUTPUT = ".audit/work/files/units.tsv"
 RECORDS = PurePosixPath(".audit/files")
 CODE = (".js", ".cjs", ".mjs", ".jsx", ".ts", ".tsx", ".mts", ".cts", ".sql")
+PYTHON = (".py", ".pyi")
 STYLESHEETS = (".css", ".scss", ".sass", ".less")
 # Pages and templates: their scripts and their markup are reviewed separately.
 MARKUP = (
@@ -26,7 +28,7 @@ MARKUP = (
     ".vue", ".svelte", ".cshtml", ".razor",
 )  # fmt: skip
 # Dependency manifests: the only place a declared-but-unused package shows.
-MANIFESTS = ("package.json",)
+MANIFESTS = ("package.json", "pyproject.toml")
 # A stretch of markup this short between scripts (a closing </body></html>)
 # isn't worth a pass of its own.
 MIN_MARKUP_LINES = 3
@@ -41,6 +43,8 @@ BOUNDARY = re.compile(
     r"|module\.exports\b|exports\.\w+\s*=|(?:app|router)\.\w+\(|CREATE\s|ALTER\s|GO\s*$",
     re.I,
 )
+# Python: a decorator starts its function, so a cut never separates the two.
+PY_BOUNDARY = re.compile(r"@\w|(?:async\s+)?def\s|class\s")
 # Separate patterns, so HTML in a script's template string never cuts a script.
 MARKUP_BOUNDARY = re.compile(
     r"<(?:section|main|header|footer|nav|form|article|aside|template|body|div)\b", re.I
@@ -95,7 +99,7 @@ def sections(
     starts = [
         (len(x) - len(x.lstrip()), i)
         for i, x in enumerate(lines)
-        if x.strip() and boundary.match(x.strip())
+        if x.strip() and boundary.match(x.strip()) and not _decorated(lines, i)
     ]
     counts: dict[int, int] = {}
     for indent, _ in starts:
@@ -116,6 +120,14 @@ def sections(
     return [(first + a, first + b) for a, b in cuts]
 
 
+def _decorated(lines: list[str], i: int) -> bool:
+    """Return True if the line before line i is a decorator at the same indent."""
+    if i == 0 or not lines[i - 1].strip().startswith("@"):
+        return False
+    here, above = lines[i], lines[i - 1]
+    return len(here) - len(here.lstrip()) == len(above) - len(above.lstrip())
+
+
 def build_units(
     ws: Workspace, inv: Inventory, excluded: tuple[str, ...]
 ) -> tuple[list[Unit], list[str]]:
@@ -134,7 +146,7 @@ def build_units(
         if (
             entry.kind != "file"
             or not kept(path)
-            or not (manifest or path.endswith((*CODE, *STYLESHEETS, *MARKUP)))
+            or not (manifest or path.endswith((*CODE, *PYTHON, *STYLESHEETS, *MARKUP)))
         ):
             continue
         try:
@@ -145,12 +157,17 @@ def build_units(
         if manifest:
             found.append((path, "", 1, max(1, len(text.splitlines())), "manifest"))
             continue
-        if path.endswith((*CODE, *STYLESHEETS)):
+        if path.endswith((*CODE, *PYTHON, *STYLESHEETS)):
             style = path.endswith(STYLESHEETS)
             kind = "stylesheet" if style else "file"
-            spans = sections(
-                text.splitlines(), 1, STYLE_BOUNDARY if style else BOUNDARY
+            boundary = (
+                STYLE_BOUNDARY
+                if style
+                else PY_BOUNDARY
+                if path.endswith(PYTHON)
+                else BOUNDARY
             )
+            spans = sections(text.splitlines(), 1, boundary)
             for n, (a, b) in enumerate(spans, 1):
                 found.append((path, str(n) if len(spans) > 1 else "", a, b, kind))
             continue

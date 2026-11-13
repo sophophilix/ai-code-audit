@@ -16,6 +16,7 @@ OPTIONAL = (
     "gitleaks",
     "cloc",
     "osv-scanner",
+    "ruff",
     "semgrep",
     "dot",
     "pandoc",
@@ -47,7 +48,7 @@ def _clean(s: KitSettings) -> bool:
 
 def doctor(s: KitSettings) -> None:
     """Report required and optional tools, the drawio-skill pin and the kit tag."""
-    say(f"agent-audit-kit {s.version} ({s.kit_home})")
+    say(f"ai-code-audit {s.version} ({s.kit_home})")
     for tool in REQUIRED:
         (ok if have(tool) else warn)(
             tool if have(tool) else f"{tool} missing (required)"

@@ -79,7 +79,7 @@ def https_fetch(url: str) -> Any:
         raise AuditKitError(f"refused: {url} is not an allow-listed https host")
     request = urllib.request.Request(  # noqa: S310  scheme and host checked above
         url,
-        headers={"Accept": "application/json", "User-Agent": "agent-audit-kit"},
+        headers={"Accept": "application/json", "User-Agent": "ai-code-audit"},
     )
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT) as response:  # noqa: S310  # nosec B310

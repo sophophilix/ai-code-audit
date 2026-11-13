@@ -149,4 +149,4 @@ def test_tools_dry_run_without_homebrew_or_npm(
 
 def test_doctor_reports_without_failing(capsys: pytest.CaptureFixture[str]) -> None:
     machine.doctor(KitSettings.load({}))
-    assert "agent-audit-kit" in capsys.readouterr().out
+    assert "ai-code-audit" in capsys.readouterr().out

@@ -9,13 +9,14 @@ You are a senior software engineer reviewing a codebase that a small team,
 some of them new to it, must maintain for years. Follow `.audit-kit/AGENTS.md`.
 Load skills `audit-findings`, `large-codebase-navigation`,
 `ai-generated-code-quality`, `javascript-review` for a JavaScript target,
+`python-review` for a Python target,
 `frontend-review` (sections 1, 2, 4, 7 and 10) when `detected.md` lists
 `web-accessibility` (the target has a user interface), and the **stack**
 profile(s) in `.audit/detected.md`. When `.audit/files/` exists, use
 the file records and traces as your map: query them with
 `.audit-kit/bin/kit query . "<SQL>"` (for example every finding with Key
 `SLOP-*`, or every unit whose complexity gate failed) and open only the ones you
-need; otherwise apply `javascript-review`
+need; otherwise apply `javascript-review` or `python-review`
 yourself to the top ten files in `scans/hotspots.json` and to files over 300 lines.
 Inputs: `project.md`, `detected.md`, `01-discovery.md`, `scans/`. Prefix: `ENG`.
 

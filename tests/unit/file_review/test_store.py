@@ -50,7 +50,7 @@ def stored(
         ("edges", 1),
         ("facts", 1),
         ("flows", 1),
-        ("gates", 6),
+        ("gates", 7),
         ("passes", 1),
     ],
 )

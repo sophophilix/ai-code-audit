@@ -1,4 +1,4 @@
-# agent-audit-kit: thin wrapper around bin/kit. Every target is idempotent.
+# ai-code-audit: thin wrapper around bin/kit. Every target is idempotent.
 # Run `make` or `make help` for usage.
 KIT  := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 K    := $(KIT)/bin/kit
@@ -14,7 +14,7 @@ WS ?=
 .PHONY: help doctor tools tag check check-data validate project workspace seed detect install install-noseed check scan lookup ready units review store cost diagrams publish verify status list test
 
 help: ## Show this help
-	@echo "agent-audit-kit $$(cat $(KIT)/VERSION)"
+	@echo "ai-code-audit $$(cat $(KIT)/VERSION)"
 	@echo
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-15s %s\n", $$1, $$2}'
 	@echo
