@@ -44,6 +44,19 @@ audit and no Python rules (ADR 0010).
   kit's Python project inside `.audit-kit`, so every agent's `kit query` failed with
   "Failed to spawn: audit-kit". `kit install` now writes a launcher that runs the kit
   it was installed from.
+- **Fixed: the launcher could install the audited target (rule 2).** When `bin/kit`
+  ran from a folder with no kit project (the copied `.audit-kit/bin/kit`, or with no
+  `dirname` on `PATH`), `uv run --project` searched parent folders, found the
+  target's `pyproject.toml` and synced it into a `.venv` in the workspace. That
+  happened once in the first Python audit: the target's dependencies and the target
+  itself (editable, through its build backend) were installed. No target code ran,
+  because its build declares no hooks. `bin/kit` now refuses to run unless its folder
+  holds the kit's `pyproject.toml` and `src/audit_kit`, and finds its folder without
+  `dirname`.
+- **Fixed: stale scans.** `kit scan` removes the lint and type-check outputs of an
+  ecosystem the target doesn't hold, so a brief never reads an earlier run's file.
+- `audit_kit.__version__` said 0.18.0. A test now keeps it, `pyproject.toml` and
+  `VERSION` the same.
 - `kit doctor`, `make help` and `kit --help` say `ai-code-audit`. Ruff is an
   optional tool that `kit tools` installs.
 

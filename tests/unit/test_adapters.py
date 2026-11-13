@@ -411,3 +411,14 @@ def test_a_python_target_gets_ruff_its_lockfile_audit_and_python_rules(
     assert "p/python" in used["semgrep"] and "p/javascript" in used["semgrep"]
     missing = (world["ws"] / ".audit/scans/MISSING.txt").read_text()
     assert "typecheck (Python): not run" in missing
+
+
+def test_a_scan_removes_outputs_of_scanners_that_no_longer_apply(
+    world: dict[str, Path],
+) -> None:
+    fake_tools(world["bin"], ("cloc", "gitleaks", "osv-scanner", "semgrep", "jscpd"))
+    stale = world["ws"] / ".audit/scans/lint-python.json"
+    stale.parent.mkdir(parents=True, exist_ok=True)
+    stale.write_text("[]")
+    scans.scan(KitSettings.load(), str(world["ws"]))
+    assert not stale.exists()  # the eval target holds no Python

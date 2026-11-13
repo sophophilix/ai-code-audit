@@ -348,9 +348,12 @@ def scan(s: KitSettings, given: str, *, force: bool = False) -> None:
         scanner("typecheck", s.tsc, "typecheck.txt", typecheck)
     else:
         skip("lint, typecheck (JavaScript): no JavaScript or TypeScript to check")
+        _remove_stale(ws, STALE["javascript"])
     if "python" in held:
         scanner("lint-python", "ruff", "lint-python.json", ruff)
         scanner.missing += PYTHON_NOT_RUN
+    else:
+        _remove_stale(ws, STALE["python"])
     # The unused-code analysis is the kit's own Python, so there is no tool to find.
     if ws.is_file(UNUSED) and ws.size(UNUSED) and not force:
         skip("unused (exists; --force to re-run)")
@@ -444,6 +447,26 @@ def scan(s: KitSettings, given: str, *, force: bool = False) -> None:
     )
     if checkpoint(root, "scans"):
         ok("checkpoint: scans")
+
+
+# Outputs of scanners that apply to one ecosystem. A scan for an ecosystem the
+# target no longer holds removes them, so a brief never reads an earlier run's file.
+STALE: dict[ecosystems.Ecosystem, tuple[str, ...]] = {
+    "javascript": (
+        code_facts.LINT,
+        ".audit/scans/typecheck.txt",
+        code_facts.TSC_FILES,
+        TSCONFIG.as_posix(),
+    ),
+    "python": (code_facts.LINT_PYTHON, code_facts.RUFF_FILES),
+}
+
+
+def _remove_stale(ws: Workspace, paths: tuple[str, ...]) -> None:
+    for rel in paths:
+        if ws.is_file(rel):
+            ws.path(rel).unlink()
+            ok(f"removed {rel} (its scanner doesn't apply to this target)")
 
 
 def write_units(
