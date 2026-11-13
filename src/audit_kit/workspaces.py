@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import io
 import re
+import shlex
 import shutil
 import tarfile
 import tempfile
@@ -72,6 +73,16 @@ def config_drift(loc: Located) -> list[str]:
         and loc.ws.read_text(f".audit/{name}")
         != (loc.project / name).read_text(encoding="utf-8")
     ]
+
+
+def kit_shim(kit_home: Path) -> str:
+    """Return the workspace's `.audit-kit/bin/kit`, which runs the installed kit."""
+    return (
+        "#!/usr/bin/env bash\n"
+        "# Runs the kit this workspace was installed from (kit install writes this).\n"
+        "set -euo pipefail\n"
+        f'exec {shlex.quote(str(kit_home / "bin/kit"))} "$@"\n'
+    )
 
 
 def today() -> str:
@@ -471,6 +482,9 @@ def install(s: KitSettings, given: str, *, no_seed: bool = False) -> None:
     ws.remove(".audit-kit")
     for part in KIT_PARTS:
         ws.copy_in(f".audit-kit/{part}", s.kit_home / part)
+    # The copied launcher would look for the kit's Python project inside
+    # .audit-kit, which holds no source; agents run `.audit-kit/bin/kit query`.
+    ws.write_text(".audit-kit/bin/kit", kit_shim(s.kit_home))
     for script in ws.path(".audit-kit/bin").iterdir():
         script.chmod(0o755)
     ok(f"kit {s.version} -> .audit-kit")

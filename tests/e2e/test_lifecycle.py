@@ -171,6 +171,9 @@ def test_eval_lifecycle(env: Path, source: Path, project: Path, kit: Kit) -> Non
     assert (ws / ".audit/quarantine/CLAUDE.md").is_file()
     assert not (ws / "CLAUDE.md").exists()
     assert os.access(ws / ".audit-kit/bin/checkpoint", os.X_OK)
+    shim = ws / ".audit-kit/bin/kit"
+    assert os.access(shim, os.X_OK)
+    assert str(KIT / "bin/kit") in shim.read_text()
     assert (ws / ".claude/skills/checkpointing/SKILL.md").is_file()
     assert (ws / ".audit/beliefs.md").is_file()
     before = commits(ws)
