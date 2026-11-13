@@ -66,6 +66,9 @@ audit and no Python rules (ADR 0010).
   like `.claude/`.
 - **Fixed: Python hotspots had complexity 0.** `hotspots.json` read complexity from
   ESLint only; it now also reads Ruff's C901 rows.
+- **Suppression reasons above the line count.** `suppressions.json` treats a
+  whole-line comment directly above a suppressed line as its reason, so a
+  documented suppression isn't reported as unexplained.
 - `kit doctor`, `make help` and `kit --help` say `ai-code-audit`. Ruff is an
   optional tool that `kit tools` installs.
 

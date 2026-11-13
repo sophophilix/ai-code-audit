@@ -175,6 +175,15 @@ def _directive(name: str, rest: str) -> tuple[list[str], str]:
     return ["all"], rest.lstrip(":- ").strip()
 
 
+def _comment_above(lines: list[str], line: int) -> str:
+    """Return the text of a whole-line comment directly above a 1-based line, or ""."""
+    if line < 2:
+        return ""
+    above = lines[line - 2].strip()
+    m = re.match(r"(?://|#|\*|/\*)\s*(.*)", above)
+    return m.group(1).strip() if m and not DIRECTIVE.search(above) else ""
+
+
 def suppressions(
     ws: Workspace, inv: Inventory, excluded: tuple[str, ...]
 ) -> dict[str, Any]:
@@ -183,16 +192,20 @@ def suppressions(
     problems: list[str] = []
     for path in _own(inv, excluded, CODE):
         text = _read(ws, path, problems)
+        lines = (text or "").splitlines()
         for m in DIRECTIVE.finditer(text or ""):
             rules, reason = _directive(m.group("d"), m.group("rest"))
+            line = _line(text or "", m.start("d"))
+            # A reason often sits in the comment just above the suppressed line.
+            above = _comment_above(lines, line)
             entries.append(
                 {
                     "file": path,
-                    "line": _line(text or "", m.start("d")),
+                    "line": line,
                     "directive": m.group("d"),
                     "rules": rules,
-                    "reason": reason[:200],
-                    "has_reason": bool(re.search(r"[A-Za-z]{3}", reason)),
+                    "reason": (reason or above)[:200],
+                    "has_reason": bool(re.search(r"[A-Za-z]{3}", reason or above)),
                 }
             )
     return {
