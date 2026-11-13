@@ -40,6 +40,11 @@ AI_INSTRUCTION_FILES = (
     ".github/copilot-instructions.md",
     ".cursor/rules",
     ".claude",
+    # Agent Skills, Codex, Gemini CLI and pi keep agents and skills in these folders.
+    ".agents",
+    ".codex",
+    ".gemini",
+    ".pi",
 )
 DATA_PATTERNS = re.compile(
     r"(^|/)\.env|\.(pem|pfx|key|bak|bacpac|mdf|ldf|dump|sqlite|db|csv|xlsx?|log)$"

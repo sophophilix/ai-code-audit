@@ -144,6 +144,15 @@ def test_a_targets_claude_folder_is_reported_but_the_kits_is_not(root: Path) -> 
     assert classes(build(Workspace(root))) == {}
 
 
+@pytest.mark.parametrize(
+    "path",
+    [".agents/skills/x/SKILL.md", ".pi/agents/r.md", ".codex/c.md", ".gemini/g.md"],
+)
+def test_agent_skill_folders_are_ai_instructions(root: Path, path: str) -> None:
+    write(root, path, "# do this\n")
+    assert classes(build(Workspace(root))) == {path: "ai-instructions"}
+
+
 def test_quarantined_files_are_recorded_at_their_original_path(root: Path) -> None:
     write(root, ".audit/quarantine/CLAUDE.md", "# rules\n")
     write(root, ".audit/detected.md", "kit output\n")
