@@ -3,5 +3,13 @@
 # (src/audit_kit) and runs from the kit's locked environment; `bin/kit help` lists them.
 # Settings (environment): AUDIT_PROJECTS_DIR, AUDIT_WORKSPACES_DIR, DRAWIO_SKILL_DIR, JSCPD_BIN.
 set -euo pipefail
-KIT_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SELF="${BASH_SOURCE[0]}"
+case "$SELF" in */*) BIN_DIR="${SELF%/*}" ;; *) BIN_DIR="." ;; esac
+KIT_HOME="$(cd "$BIN_DIR/.." && pwd)"
+# Without this, uv looks for a project in the parent folders, finds the audited
+# target's pyproject.toml and installs it, which AGENTS.md rule 2 forbids.
+if [ ! -f "$KIT_HOME/pyproject.toml" ] || [ ! -d "$KIT_HOME/src/audit_kit" ]; then
+  echo "kit: $KIT_HOME is not the kit's source folder; run the kit from its own checkout" >&2
+  exit 2
+fi
 exec uv run --quiet --frozen --project "$KIT_HOME" audit-kit "$@"
