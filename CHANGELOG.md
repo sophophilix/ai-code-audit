@@ -61,6 +61,9 @@ audit and no Python rules (ADR 0010).
   the check compared the escaped text with the source. Python's `X | None` made 19
   of 214 records fail in the first Python audit. The check now accepts the escaped
   form when the unescaped one matches.
+- **Fixed: agent folders weren't AI instructions.** `.agents/`, `.codex/`, `.gemini/`
+  and `.pi/` hold agent and skill definitions; they are now classed and quarantined
+  like `.claude/`.
 - `kit doctor`, `make help` and `kit --help` say `ai-code-audit`. Ruff is an
   optional tool that `kit tools` installs.
 
