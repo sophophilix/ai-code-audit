@@ -19,12 +19,15 @@ from audit_kit.workspace import Workspace
 
 OUTPUT = ".audit/scans/hotspots.json"
 LINT = ".audit/scans/lint.json"
+LINT_PYTHON = ".audit/scans/lint-python.json"
 SHOWN = 30
 COUPLED_MIN = 5
 # A commit touching more files than this is a bulk change (formatting, rename,
 # vendoring) and says nothing about which files depend on each other.
 BULK = 50
 COMPLEXITY = re.compile(r"complexity of (\d+)")
+# Ruff C901: "`name` is too complex (11 > 10)".
+RUFF_COMPLEXITY = re.compile(r"too complex \((\d+) >")
 RECORD = "\x1e"
 
 
@@ -44,11 +47,19 @@ def parse_log(text: str) -> list[tuple[str, list[tuple[str, int]]]]:
 
 
 def complexity(ws: Workspace, own: set[str]) -> dict[str, int]:
-    """Highest ESLint `complexity` per own file, from lint.json.
+    """Highest complexity per own file: ESLint's from lint.json, Ruff's from lint-python.json.
 
     Lint paths are absolute for the machine the scan ran on, so they're matched
     the same way coverage.json matches them, which survives a moved workspace.
     """
+    worst = _ruff_complexity(ws, own)
+    for path, score in _eslint_complexity(ws, own).items():
+        worst[path] = max(worst.get(path, 0), score)
+    return worst
+
+
+def _eslint_complexity(ws: Workspace, own: set[str]) -> dict[str, int]:
+    """Highest ESLint `complexity` per own file, from lint.json."""
     if not ws.is_file(LINT):
         return {}
     try:
@@ -68,6 +79,25 @@ def complexity(ws: Workspace, own: set[str]) -> dict[str, int]:
             m = COMPLEXITY.search(str(message.get("message", "")))
             if message.get("ruleId") == "complexity" and m:
                 worst[path] = max(worst.get(path, 0), int(m.group(1)))
+    return worst
+
+
+def _ruff_complexity(ws: Workspace, own: set[str]) -> dict[str, int]:
+    """Highest Ruff C901 complexity per own Python file (ADR 0010)."""
+    if not ws.is_file(LINT_PYTHON):
+        return {}
+    try:
+        rows = json.loads(ws.read_text(LINT_PYTHON, limit=500_000_000))
+    except json.JSONDecodeError:
+        return {}
+    rows = [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else []
+    paths = match_tool_paths(ws.root, [str(r.get("filename", "")) for r in rows], own)
+    worst: dict[str, int] = {}
+    for row in rows:
+        path = paths.get(str(row.get("filename", "")).strip())
+        m = RUFF_COMPLEXITY.search(str(row.get("message", "")))
+        if path is not None and row.get("code") == "C901" and m:
+            worst[path] = max(worst.get(path, 0), int(m.group(1)))
     return worst
 
 

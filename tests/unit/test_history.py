@@ -106,3 +106,22 @@ def test_complexity_comes_from_lint(tmp_path: Path) -> None:
 def test_a_failed_git_log_is_a_recorded_gap(tmp_path: Path) -> None:
     out = report(None, OWN, Workspace(tmp_path), "abc", "git log failed (bad object)")
     assert out["gap"].startswith("git log failed (bad object)")
+
+
+def test_python_complexity_comes_from_ruff(tmp_path: Path) -> None:
+    ws = Workspace(tmp_path)
+    ruff = [
+        {
+            "filename": str(tmp_path / "pkg/cli.py"),
+            "code": "C901",
+            "message": "`main` is too complex (23 > 10)",
+        },
+        {
+            "filename": str(tmp_path / "pkg/cli.py"),
+            "code": "C901",
+            "message": "`helper` is too complex (12 > 10)",
+        },
+        {"filename": str(tmp_path / "pkg/cli.py"), "code": "S608", "message": "SQL"},
+    ]
+    ws.write_text(".audit/scans/lint-python.json", json.dumps(ruff))
+    assert complexity(ws, {"pkg/cli.py"}) == {"pkg/cli.py": 23}
