@@ -43,6 +43,11 @@ SOURCES = (
         PurePosixPath(".audit/scans/typecheck.txt"),
         "tsc --checkJs, the kit's tsconfig",
     ),
+    Source(
+        "lint-python",
+        PurePosixPath(".audit/scans/lint-python.json"),
+        "Ruff, the kit's config; the target's suppressions ignored",
+    ),
     Source("sast", PurePosixPath(".audit/scans/sast.sarif"), "Semgrep"),
     Source(
         "sweep",
@@ -118,6 +123,17 @@ class _EslintMessage(_Scan):
 class _EslintResult(_Scan):
     filePath: str  # noqa: N815  ESLint's field name
     messages: list[_EslintMessage] = Field(default_factory=list)
+
+
+class _RuffLocation(_Scan):
+    row: int | None = None
+
+
+class _RuffMessage(_Scan):
+    filename: str
+    code: str | None = None
+    message: str = ""
+    location: _RuffLocation = Field(default_factory=_RuffLocation)
 
 
 class _SarifRegion(_Scan):
@@ -281,6 +297,7 @@ class _DesignReport(_Scan):
 
 
 _ESLINT = TypeAdapter(list[_EslintResult])
+_RUFF = TypeAdapter(list[_RuffMessage])
 _LEAKS = TypeAdapter(list[_Leak])
 _KNIP_ITEMS = TypeAdapter(list[_KnipItem])
 
@@ -297,6 +314,17 @@ def _lint(text: str, match: Match) -> Found:
         for m in result.messages:
             found.append(
                 (path, Row(m.line, f"{m.ruleId or 'parse error'}: {m.message}"))
+            )
+    return found
+
+
+def _ruff(text: str, match: Match) -> Found:
+    found: Found = []
+    for m in _RUFF.validate_json(text):
+        path = match(m.filename)
+        if path is not None:
+            found.append(
+                (path, Row(m.location.row, f"{m.code or 'syntax'}: {m.message}"))
             )
     return found
 
@@ -503,6 +531,7 @@ def _design(text: str, _match: Match) -> Found:
 
 _READERS: dict[str, Callable[[str, Match], Found]] = {
     "lint": _lint,
+    "lint-python": _ruff,
     "typecheck": _typecheck,
     "sast": _sarif,
     "sweep": _sweep,
@@ -554,12 +583,16 @@ def _matcher(ws: Workspace, wanted: set[str]) -> Match:
 
 
 def _examined(ws: Workspace, match: Match, index: ScanIndex) -> None:
-    """Record the files ESLint and tsc say they examined.
+    """Record the files ESLint, tsc and Ruff say they examined.
 
     A tool whose list is missing or unreadable gets no entry, and the reason
     goes in `index.problems`, so its gates say why they can't judge a file.
     """
-    lists = (("lint", code_facts.LINT), ("typecheck", code_facts.TSC_FILES))
+    lists = (
+        ("lint", code_facts.LINT),
+        ("typecheck", code_facts.TSC_FILES),
+        ("lint-python", code_facts.RUFF_FILES),
+    )
     for source, rel in lists:
         if not ws.is_file(rel):
             index.problems[f"{source} examined list"] = f"{rel} not written"

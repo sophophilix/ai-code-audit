@@ -12,6 +12,8 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
+from audit_kit.ecosystems import lockfiles as find_lockfiles
+from audit_kit.ecosystems import of_paths
 from audit_kit.errors import WorkspaceError
 from audit_kit.intake import parse_intake as read_intake
 from audit_kit.inventory import (
@@ -21,10 +23,13 @@ from audit_kit.inventory import (
     build,
     exclusions,
 )
-from audit_kit.manifest import load_manifest
+from audit_kit.manifest import load_manifest, load_pyproject
 from audit_kit.workspace import Workspace
 
-LOCKFILES = frozenset({"package-lock.json", "yarn.lock", "pnpm-lock.yaml"})
+LOCKFILES = frozenset(
+    {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "uv.lock", "poetry.lock",
+     "pdm.lock", "Pipfile.lock"}
+)  # fmt: skip
 UI_EXT = frozenset(
     {
         ".html",
@@ -49,6 +54,21 @@ AI_DEPS = frozenset(
         "@google/generative-ai",
         "@azure-rest/ai-inference",
         "@azure/ai-projects",
+        # Python distributions (normalised names, PEP 503)
+        "anthropic",
+        "instructor",
+        "langchain-core",
+        "langchain-openai",
+        "litellm",
+        "google-genai",
+        "google-generativeai",
+        "azure-ai-inference",
+        "azure-ai-projects",
+        "ollama",
+        "mistralai",
+        "cohere",
+        "llama-cpp-python",
+        "transformers",
     }
 )
 AI_HOSTS = re.compile(
@@ -89,6 +109,7 @@ LANGUAGES = {
 # covered by the general rules, so it is never flagged.
 PROFILE_LANGUAGES = {
     "node-express": frozenset({"JavaScript", "TypeScript"}),
+    "python": frozenset({"Python"}),
     "mssql": frozenset({"SQL"}),
     "web-accessibility": frozenset({"HTML", "CSS", "Razor", "Vue", "Svelte"}),
     "azure-architecture": frozenset({"Bicep", "Terraform", "PowerShell"}),
@@ -197,8 +218,18 @@ def detect(ws: Workspace, inv: Inventory | None = None) -> Detection:
         problems.append(loaded.problem)
     manifest = loaded.manifest
     deps = manifest.all_dependencies() if manifest else {}
+    py_loaded = load_pyproject(ws)
+    if py_loaded.problem:
+        problems.append(py_loaded.problem)
+    pyproject = py_loaded.pyproject
+    py_runtime = pyproject.runtime() if pyproject else ()
+    py_dev = pyproject.development() if pyproject else ()
+    py_deps = {*py_runtime, *py_dev}
 
-    binary = {e.path for e in sc.inventory.of("binary", "data-candidate")}
+    # A binary file in any class (a PNG under docs/) is never read as text.
+    binary = {e.path for e in sc.inventory.of("binary", "data-candidate")} | {
+        e.path for e in sc.inventory.entries if e.binary
+    }
     texts: dict[PurePosixPath, str] = {}
     for rel in sc.own:
         if rel.as_posix() in binary:
@@ -226,6 +257,13 @@ def detect(ws: Workspace, inv: Inventory | None = None) -> Detection:
             else "; Node.js (no express dependency)"
         )
         profiles.append(Profile("node-express", "package.json" + express))
+    if "python" in of_paths(r.as_posix() for r in sc.own):
+        source = (
+            f"pyproject.toml; {len(py_runtime)} runtime dependencies"
+            if pyproject is not None
+            else "Python files"
+        )
+        profiles.append(Profile("python", source))
     sql_files = [r for r in sc.own if r.suffix.lower() == ".sql"]
     sql_deps = [d for d in ("mssql", "tedious") if d in deps]
     if sql_deps or sql_files:
@@ -233,7 +271,9 @@ def detect(ws: Workspace, inv: Inventory | None = None) -> Detection:
         if sql_files:
             parts.append(f"{len(sql_files)} .sql file(s), e.g. {sql_files[0]}")
         profiles.append(Profile("mssql", "; ".join(parts)))
-    az_deps = sorted(d for d in deps if d.startswith("@azure/"))
+    az_deps = sorted(d for d in deps if d.startswith("@azure/")) + sorted(
+        d for d in py_deps if d.startswith("azure-")
+    )
     az_iac = [
         r
         for r in sc.own
@@ -244,7 +284,7 @@ def detect(ws: Workspace, inv: Inventory | None = None) -> Detection:
     if az_deps or az_iac or az_hosts:
         parts = []
         if az_deps:
-            parts.append(f"package.json: {', '.join(az_deps)}")
+            parts.append(f"dependencies: {', '.join(az_deps)}")
         if az_iac:
             parts.append(f"IaC/pipeline: {', '.join(map(str, az_iac[:3]))}")
         if az_hosts:
@@ -268,9 +308,11 @@ def detect(ws: Workspace, inv: Inventory | None = None) -> Detection:
     resolved += [p for p in intake.add if p not in resolved]
 
     ai_deps = sorted(d for d in deps if d in AI_DEPS)
-    ai_signals = ([f"package.json: {', '.join(ai_deps)}"] if ai_deps else []) + [
-        f"AI service hostname at {h}" for h in first_hits(AI_HOSTS)
-    ]
+    ai_py = sorted(d for d in py_deps if d in AI_DEPS)
+    ai_signals = (
+        ([f"package.json: {', '.join(ai_deps)}"] if ai_deps else [])
+        + ([f"pyproject.toml: {', '.join(ai_py)}"] if ai_py else [])
+    ) + [f"AI service hostname at {h}" for h in first_hits(AI_HOSTS)]
     lines = {
         r: t.count("\n") + (1 if t and not t.endswith("\n") else 0)
         for r, t in texts.items()
@@ -296,9 +338,12 @@ def detect(ws: Workspace, inv: Inventory | None = None) -> Detection:
             (str(r), n)
             for r, n in sorted(lines.items(), key=lambda kv: (-kv[1], str(kv[0])))[:10]
         ),
-        dependencies=len(manifest.dependencies) if manifest else 0,
-        dev_dependencies=len(manifest.dev_dependencies) if manifest else 0,
-        lockfiles=tuple(n for n in sorted(LOCKFILES) if ws.is_file(n)),
+        dependencies=(len(manifest.dependencies) if manifest else 0) + len(py_runtime),
+        dev_dependencies=(len(manifest.dev_dependencies) if manifest else 0)
+        + len(py_dev),
+        lockfiles=find_lockfiles(
+            e.path for e in sc.inventory.entries if e.kind == "file"
+        ),
         pipelines=tuple(
             p
             for p in own_text

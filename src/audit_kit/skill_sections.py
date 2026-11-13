@@ -20,9 +20,11 @@ from pathlib import Path
 from audit_kit.units import Unit
 
 # `file` units split by extension: a .jsx component needs the front-end rules,
-# and a .sql file needs neither the JavaScript nor the front-end ones.
+# a .sql file needs neither the JavaScript nor the front-end ones, and a .py file
+# needs the Python rules (ADR 0010 D4).
 KINDS = (
     "script",
+    "python",
     "component",
     "sql",
     "inline script",
@@ -37,6 +39,7 @@ HEADING = re.compile(r"^(?P<hashes>#{2,6}) \S")
 CORE_SKILLS = (
     "audit-findings",
     "javascript-review",
+    "python-review",
     "frontend-review",
     "ai-generated-code-quality",
 )
@@ -48,6 +51,8 @@ def kind_of(unit: Unit) -> str:
         return unit.kind
     if unit.path.endswith(".sql"):
         return "sql"
+    if unit.path.endswith((".py", ".pyi")):
+        return "python"
     if unit.path.endswith((".jsx", ".tsx")):
         return "component"
     return "script"

@@ -113,3 +113,45 @@ def test_a_gate_with_no_mention_is_not_found(ws: Workspace) -> None:
 def test_the_repository_table_round_trips_through_its_file(ws: Workspace) -> None:
     written = gates.write_repository(ws, write_target_ci(ws))
     assert gates.read_repository(ws) == written
+
+
+def python_unit(tmp_path_factory: pytest.TempPathFactory) -> tuple[Workspace, Unit]:
+    root = tmp_path_factory.mktemp("py")
+    (root / ".audit/scans").mkdir(parents=True)
+    (root / "app.py").write_text("def f(x):\n    if x:\n        return 1\n")
+    ruff = [
+        {"filename": str(root / "app.py"), "code": "S608", "message": "SQL",
+         "location": {"row": 2, "column": 1}},
+        {"filename": str(root / "app.py"), "code": "C901", "message": "`f` is too complex (11 > 10)",
+         "location": {"row": 1, "column": 1}},
+    ]  # fmt: skip
+    (root / ".audit/scans/lint-python.json").write_text(json.dumps(ruff))
+    (root / ".audit/scans/lint-python-files.txt").write_text(f"{root}/app.py\n")
+    return Workspace(root), Unit("u001", "app.py", "", 1, 3, "file")
+
+
+def test_a_python_unit_gets_ruff_and_complexity_and_not_the_javascript_tools(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    ws, unit = python_unit(tmp_path_factory)
+    assert statuses(ws, unit) == {
+        "eslint": "not_applicable",
+        "tsc": "not_applicable",
+        "ruff": "fail",
+        "semgrep": "unavailable",
+        "knip": "not_applicable",
+        "complexity": "fail",
+        "duplication": "unavailable",
+    }
+
+
+def test_ruff_not_examining_a_python_file_is_never_a_pass(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    ws, unit = python_unit(tmp_path_factory)
+    ws.write_text(".audit/scans/lint-python-files.txt", "")
+    assert statuses(ws, unit)["ruff"] == "unavailable"
+
+
+def test_a_javascript_unit_is_not_ruffs(ws: Workspace, route: Unit) -> None:
+    assert statuses(ws, route)["ruff"] == "not_applicable"

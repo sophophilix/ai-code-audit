@@ -150,6 +150,30 @@ def test_quarantined_files_are_recorded_at_their_original_path(root: Path) -> No
     assert classes(build(Workspace(root))) == {"CLAUDE.md": "ai-instructions"}
 
 
+def test_quarantined_symlinks_are_recorded_at_their_original_path(root: Path) -> None:
+    write(root, ".audit/quarantine/AGENTS.md", "# rules\n")
+    os.symlink("AGENTS.md", root / ".audit/quarantine/CLAUDE.md")
+    entries = {e.path: e for e in build(Workspace(root)).entries}
+    assert (entries["CLAUDE.md"].kind, entries["CLAUDE.md"].target) == (
+        "symlink",
+        "AGENTS.md",
+    )
+
+
+def test_a_folder_with_its_own_licence_is_vendored(root: Path) -> None:
+    write(root, "LICENSE", "MIT License\nCopyright (c) us\n")
+    write(root, "third/LICENSE", "BSD\nCopyright (c) them\n")
+    write(root, "third/lib.py")
+    assert classes(build(Workspace(root)))["third/lib.py"] == "vendored"
+
+
+def test_a_folder_with_a_copy_of_the_root_licence_is_own(root: Path) -> None:
+    write(root, "LICENSE", "MIT License\nCopyright (c) us\n")
+    write(root, "plugins/mail/LICENSE", "MIT License\nCopyright (c) us\n")
+    write(root, "plugins/mail/src/mail.py")
+    assert classes(build(Workspace(root)))["plugins/mail/src/mail.py"] == "own"
+
+
 def test_gitattributes_overrides_linguist(root: Path) -> None:
     write(
         root,

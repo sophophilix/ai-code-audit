@@ -47,7 +47,7 @@ Handler = Callable[[argparse.Namespace, KitSettings], int]
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="kit",
-        description="agent-audit-kit. Every command is idempotent: re-running does only what's missing.",
+        description="ai-code-audit. Every command is idempotent: re-running does only what's missing.",
     )
     parser.add_argument(
         "--version", action="version", version=f"audit-kit {__version__}"
