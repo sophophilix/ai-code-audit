@@ -245,6 +245,7 @@ def test_real_lifecycle_and_validation(
     assert code == 0
     assert "names no commit id" in out
     assert "result: pass" in (ws / ".audit/validation.md").read_text()
+    assert ".audit/models.yaml differs from" in out
 
     (ws / ".audit/project.md").write_text(
         INTAKE.replace("demo @ main", "demo @ 1234abcd")

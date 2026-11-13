@@ -54,6 +54,26 @@ class Located:
     project: Path
 
 
+PROJECT_FILES = ("project.md", "models.yaml", "policy.yaml")
+
+
+def config_drift(loc: Located) -> list[str]:
+    """Return the project files whose workspace copy differs from the project's.
+
+    `kit install` keeps the workspace copy, so an edit made only in the project
+    folder never reaches the audit. Saying so turns a puzzling validation error
+    into a one-line fix.
+    """
+    return [
+        name
+        for name in PROJECT_FILES
+        if (loc.project / name).is_file()
+        and loc.ws.is_file(f".audit/{name}")
+        and loc.ws.read_text(f".audit/{name}")
+        != (loc.project / name).read_text(encoding="utf-8")
+    ]
+
+
 def today() -> str:
     """Return today's date in UTC as YYYY-MM-DD."""
     return datetime.now(UTC).strftime("%Y-%m-%d")
