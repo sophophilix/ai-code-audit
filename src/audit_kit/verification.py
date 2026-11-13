@@ -166,13 +166,10 @@ def excerpt_problem(
             reader when checking many excerpts.
     """
     problem = _excerpt_problem(ws, location, excerpt, lines_of)
-    if problem and "\\|" in excerpt:
-        # A Markdown table cell escapes `|`; Python's `X | None` is common in excerpts.
-        if (
-            _excerpt_problem(ws, location, excerpt.replace("\\|", "|"), lines_of)
-            is None
-        ):
-            return None
+    # A Markdown table cell escapes `|`; Python's `X | None` is common in excerpts.
+    unescaped = excerpt.replace("\\|", "|")
+    if problem and unescaped != excerpt:
+        return _excerpt_problem(ws, location, unescaped, lines_of) and problem
     return problem
 
 
