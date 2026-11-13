@@ -40,6 +40,10 @@ audit and no Python rules (ADR 0010).
 - `kit validate` notes each of `project.md`, `models.yaml` and `policy.yaml` whose
   workspace copy differs from the project's, since `kit install` keeps the
   workspace copy.
+- **Fixed: `.audit-kit/bin/kit` in a workspace couldn't run.** It looked for the
+  kit's Python project inside `.audit-kit`, so every agent's `kit query` failed with
+  "Failed to spawn: audit-kit". `kit install` now writes a launcher that runs the kit
+  it was installed from.
 - `kit doctor`, `make help` and `kit --help` say `ai-code-audit`. Ruff is an
   optional tool that `kit tools` installs.
 
