@@ -177,3 +177,14 @@ def test_coverage_names_python_files_ruff_skipped(tmp_path: Path) -> None:
         "tool": "ruff",
         "reason": "the tool didn't report it",
     } in out["gaps"]
+
+
+def test_a_reason_in_the_comment_above_counts(tmp_path: Path) -> None:
+    (tmp_path / "db.py").write_text(
+        "# Column names come from a fixed list.\n"
+        'cur.execute(f"SELECT {c} FROM t")  # nosec B608\n'
+        'cur.execute(f"SELECT {d} FROM t")  # nosec B608\n'
+    )
+    ws = Workspace(tmp_path)
+    found = [e["has_reason"] for e in suppressions(ws, build(ws), ())["entries"]]
+    assert found == [True, False]
