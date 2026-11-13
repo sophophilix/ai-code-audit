@@ -465,7 +465,7 @@ STALE: dict[ecosystems.Ecosystem, tuple[str, ...]] = {
 def _remove_stale(ws: Workspace, paths: tuple[str, ...]) -> None:
     for rel in paths:
         if ws.is_file(rel):
-            ws.path(rel).unlink()
+            ws.remove(rel)
             ok(f"removed {rel} (its scanner doesn't apply to this target)")
 
 
