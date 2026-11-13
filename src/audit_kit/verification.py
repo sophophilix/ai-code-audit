@@ -478,6 +478,11 @@ def check(ws: Workspace) -> Report:
         "locks: " + (f"still active {active}" if active else "none active"),
     )
 
+    # File records and traces hold findings a report may cite (ADR 0002 D6), so
+    # they join before the report's IDs are checked.
+    for f in _check_file_review(ws, report, searcher):
+        findings[f.id] = f
+
     high = sorted(
         i
         for i, f in findings.items()
@@ -545,8 +550,6 @@ def check(ws: Workspace) -> Report:
             + (f"; {len(vague)} without meaningful alt text" if vague else ""),
         )
 
-    for f in _check_file_review(ws, report, searcher):
-        findings[f.id] = f
     _check_recommended(ws, report)
     _check_backlog(ws, report)
     _check_diagrams(ws, report)

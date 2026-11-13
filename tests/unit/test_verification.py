@@ -350,3 +350,19 @@ def test_a_report_for_a_ui_needs_a_still_to_check_by_hand_section(
         "![Request flow from residents through the WAF to the app](d.png)\n",
     )
     assert not any("OUT-R13" in line for line in failed(ws))
+
+
+def test_a_report_may_cite_a_trace_finding(ws: Workspace) -> None:
+    write(
+        ws,
+        "traces/login.md",
+        HEADER.replace("security", "tracer")
+        + "## Findings\n"
+        + finding("TRACE-t01-001", "X-cross-file:app.js", "low"),
+    )
+    write(
+        ws,
+        "07-final-report.md",
+        "SEC-001 and TRACE-t01-001 are one cause.\n## Not examined\nNone.\n",
+    )
+    assert not [line for line in failed(ws) if "OUT-R1" in line]
