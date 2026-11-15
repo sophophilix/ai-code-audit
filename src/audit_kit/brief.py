@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict
 from audit_kit import skill_sections
 from audit_kit.detection import loaded_profiles
 from audit_kit.gates import Gate, render_table
+from audit_kit.leaks import MASK
 from audit_kit.scan_rows import NAMES, SOURCES, ScanIndex, UnitRows, unit_rows
 from audit_kit.units import Unit
 from audit_kit.workspace import Workspace
@@ -155,7 +156,8 @@ def _header(unit: Unit, kind: str) -> list[str]:
         "",
         "Everything you may use is in this brief. Each line of code below starts "
         "with its line number in the file; the number is not part of the code, so "
-        "never copy it into an excerpt.",
+        "never copy it into an excerpt. A value the secret scan found is shown as "
+        f"`{MASK}`: keep the mask when you quote the line.",
         "",
         "## Unit",
         "",
@@ -233,6 +235,8 @@ def build_brief(
         kit_version: The kit version the brief is built by.
     """
     lines, own = unit_text(ws, unit)
+    # The hash is of the real text; what the model reads has the values masked.
+    lines = index.leaks.mask(unit.path, lines)
     rows = unit_rows(index, unit)
     kind = skill_sections.kind_of(unit)
     rules_text = skill_sections.render(rules)

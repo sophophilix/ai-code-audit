@@ -101,7 +101,7 @@ pinned versions of these against the clone and saves the output in
 | `cloc.json` | cloc | discovery, engineer |
 | `deps-audit.json` | `npm audit --json` / osv-scanner | security |
 | `upstream-status.json` | `kit lookup`: npm deprecated, GitHub archived, Node.js end of life, only if `.audit/policy.yaml` allows (`policy: deny` otherwise) | security |
-| `secrets.json` | gitleaks (full history, redacted) | security |
+| `secrets.json` | gitleaks with the kit's rules (`config/gitleaks.toml`): full history, redacted. The target's `.gitleaks.toml` and `gitleaks:allow` comments don't apply. A `.gitleaksignore` in the target still does, and `MISSING.txt` says how many findings it lists | security |
 | `sast.sarif` | Semgrep (pinned rulesets) | security |
 | `duplication.json` | jscpd | engineer |
 | `unused.json` | the kit's own static analysis (`kit scan`): JavaScript `require` and `import`, and Python dependencies declared in `pyproject.toml` against the imports of own `.py` files. Knip isn't used: its plugins load the target's config files, which runs target code | engineer |

@@ -101,6 +101,9 @@ write against rules 1 and 2 before it runs, and checks your output file when
 you finish (ADR 0013). A message that starts `Refused by the audit kit` is a
 rule, not a fault. Don't look for another way to do the same thing.
 
+`kit verify` also enforces rule 6 for every value the secret scan found: an
+output that holds one fails (OUT-R7). Write `****` in its place.
+
 ## Shared skills
 
 - `audit-findings`: finding format, IDs, keys, severity, provenance header. Always load it.

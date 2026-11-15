@@ -151,7 +151,13 @@ def test_scan_sends_expected_commands_and_records_outputs(
     s = KitSettings.load()
     scans.scan(s, str(world["ws"]))
     used = {c[0]: c for c in calls(world["log"])}
-    assert used["gitleaks"][1] == "dir"  # eval snapshots have no history to scan
+    gitleaks = used["gitleaks"]
+    assert gitleaks[1] == "dir"  # eval snapshots have no history to scan
+    # The kit's rules, so a .gitleaks.toml or a comment in the target hides nothing.
+    assert gitleaks[gitleaks.index("--config") + 1] == str(
+        s.kit_home / "config/gitleaks.toml"
+    )
+    assert "--ignore-gitleaks-allow" in gitleaks and "--redact" in gitleaks
     assert "--exclude" in used["semgrep"]
     assert "public/vendor" in used["semgrep"]
     assert any(a.startswith("--exclude-dir=") and "vendor" in a for a in used["cloc"])

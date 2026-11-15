@@ -52,7 +52,7 @@ every record, so a record reused from an earlier audit is checked against this o
 | OUT-R4 | Rejected findings appear only in the appendix | yes |
 | OUT-R5 | Links resolve; Markdown passes `markdownlint` | yes |
 | OUT-R6 | Every image has meaningful alt text (not empty, not "diagram") | yes (presence) / person (meaning) |
-| OUT-R7 | Secret scan of all outputs is clean (gitleaks on `.audit/`, excluding `scans/`) | yes |
+| OUT-R7 | No text output under `.audit/`, excluding `scans/`, holds a value that the secret scan found in the target. The kit finds each value again from the redacted scan and reports only the file and its lines. A secret the scan missed isn't caught, and a `.docx` or `.pptx` isn't read | yes |
 | OUT-R8 | No exploit detail beyond a scenario in words | person |
 | OUT-R9 | A non-technical reader can follow the executive summary | person |
 | OUT-R14 | Part A (executive summary, decisions needed, top five issues, roadmap) stands on its own: a manager who reads only Part A knows the risk, the decisions and the next step | person |

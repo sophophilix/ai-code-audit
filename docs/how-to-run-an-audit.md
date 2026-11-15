@@ -145,7 +145,8 @@ Then, in the workspace:
 
 ```zsh
 cloc --exclude-dir=node_modules,.audit,.audit-kit,.claude --json . > .audit/scans/cloc.json
-gitleaks git --redact --report-format json --report-path .audit/scans/secrets.json .
+gitleaks git --config .audit-kit/config/gitleaks.toml --ignore-gitleaks-allow \
+  --redact --report-format json --report-path .audit/scans/secrets.json .
 osv-scanner scan source --format json -L package-lock.json > .audit/scans/deps-audit.json
 semgrep scan --config p/javascript --config p/expressjs --config p/owasp-top-ten \
   --exclude .audit --exclude .audit-kit --sarif -o .audit/scans/sast.sarif .

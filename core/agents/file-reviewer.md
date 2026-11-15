@@ -100,7 +100,8 @@ answer.
   numbers. Whitespace may differ; nothing else may (OUT-F7). Keep every
   character of every line you quote, including comment markers (`//`, `*`,
   `<!--`) at the start of a second or third line. Mark a cut with `...` and mask
-  a secret as `****`.
+  a secret as `****`. The brief already shows `****` for a value the secret scan
+  found: keep it, and treat that line as holding a real literal value.
 - **Checks** (OUT-U6): every check in the list is answered once, and a check is
   `found` exactly when a finding's Key uses it.
 - **Critical or High** needs a `trigger`: a concrete input or call sequence and

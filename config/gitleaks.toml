@@ -1,0 +1,30 @@
+# The kit's gitleaks rules. Passed with --config, so a .gitleaks.toml in the
+# target never applies and can't allow-list a leak. The default rules stay on.
+# The rules below add credentials that the default rules don't match: a
+# value with no known vendor shape, passed as an argument, not assigned.
+# A row is a lead for a reviewer, never a finding on its own.
+title = "audit kit"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "kit-authorization-literal"
+description = "A literal credential after an HTTP authorisation scheme"
+regex = '''(?i)["'`](?:bearer|basic|token)[ ]+([a-z0-9_\-.~+/=]{20,})["'`]'''
+secretGroup = 1
+entropy = 3.0
+keywords = ["bearer ", "basic ", "token "]
+
+[[rules]]
+id = "kit-credential-argument"
+description = "A literal passed beside a credential name, such as a header and its value"
+regex = '''(?i)["'`][a-z0-9_\-]*(?:api[_-]?key|authorization|passw(?:or)?d|secret|token)["'`][ \t]*,[ \t]*["'`]([^"'`\s<>{}$]{16,})["'`]'''
+secretGroup = 1
+entropy = 3.5
+keywords = ["key", "authorization", "passw", "secret", "token"]
+
+  # Words and separators only, such as a media type: not a credential shape.
+  [[rules.allowlists]]
+  regexTarget = "secret"
+  regexes = ['''^[a-z/._\-]+$''']
