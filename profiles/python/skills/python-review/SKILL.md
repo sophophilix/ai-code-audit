@@ -135,6 +135,7 @@ that code, and `grep` means a pattern to search this file for.
 | PY-WEAK-HASH | `md5` or `sha1` used for a security purpose; a password stored with a fast hash | `ruff:S324` | High for passwords or integrity checks | OWASP-passwords | |
 | PY-CRYPTO-DIY | Encryption or key handling built by hand: a fixed or reused nonce, a key in source or config, ECB mode, no authentication | read uses of `cryptography`, `hashlib`, `hmac` | High | Cryptography-docs | |
 | PY-SECRET-LOG | A secret, token, key or personal data passed to a logger, an exception message or stdout | grep `log`, `print`, `raise` near secret names | High for credentials; Medium for personal data | OWASP-logging | |
+| PY-HARDCODED-SECRET | A credential written as a literal in source or in a committed config file: a password, token, API key or private key. A value the brief shows as `****` is one the secret scan found. Decide from the code around it whether it is real, a test value or a placeholder, and say what decides it | `scans/secrets.json`; `ruff:S105`, `ruff:S106`, `ruff:S107` | High if it grants access to anything; Low for a test value or a placeholder | OWASP-secrets | |
 | PY-TLS-OFF | `verify=False`, an unverified SSL context, or certificate checks disabled | `ruff:S501`, `ruff:S323` | High for any non-loopback call | Py-ssl | |
 
 ### Typing and API surface
@@ -191,6 +192,7 @@ that code, and `grep` means a pattern to search this file for.
 - OWASP-sqli: https://cheatsheetseries.owasp.org/cheatsheets/Query_Parameterization_Cheat_Sheet.html
 - OWASP-passwords: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
 - OWASP-logging: https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html
+- OWASP-secrets: https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
 - Ruff rules: https://docs.astral.sh/ruff/rules/
 
 These URLs were written on 2026-11-13 and not each fetched by the kit. Cite a page
