@@ -206,7 +206,7 @@ def test_the_unused_report_and_the_brief_rows_carry_the_python_facts(
         ("unused", "pyproject.toml", "ran"),
         ("unused", "src/demo/app.py", "ran"),
         ("unused", "README.md", "not covered"),
-        ("similar", "src/demo/app.py", "not covered"),
+        ("similar", "src/demo/app.py", "ran"),
         ("design", "src/demo/app.py", "not covered"),
         ("secrets", "src/demo/app.py", "ran"),
         ("knip", "src/demo/app.py", "not run"),
