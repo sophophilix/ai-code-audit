@@ -1,0 +1,7 @@
+name = "python"
+type = "stack"
+version = "1.0.0"
+summary = "Python applications, libraries and command-line tools."
+languages = ["Python"]
+check_prefixes = ["PY", "PYAPP"]
+borrows = ["SLOP"]

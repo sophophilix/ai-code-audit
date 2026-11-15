@@ -8,7 +8,8 @@ shell commands, and load instructions. Everything else is optional.
 2. Point the tool's project instructions at `.audit-kit/AGENTS.md`
    (e.g. an `AGENTS.md` at the workspace root that says "Follow `.audit-kit/AGENTS.md`").
 3. Load skills from `.audit-kit/core/skills/` and the profiles that
-   `.audit/detected.md` lists under "Profiles to load". Tools that support the Agent Skills folder format
+   `.audit/detected.md` lists under "Profiles to load". A profile's own skills
+   are in its `skills/` folder (`.audit-kit/profiles/python/skills/python-review`). Tools that support the Agent Skills folder format
    can load them directly; otherwise paste the SKILL.md text into the session.
 4. For each pass in `.audit/models.yaml`, start a **new session** with that
    pass's model and say:

@@ -17,7 +17,7 @@ mkdir -p .audit-kit .audit/scans .audit/adr .claude/agents .claude/commands .cla
 cp -R "$KIT"/{AGENTS.md,VERSION,core,profiles,evals,templates,config} .audit-kit/
 cp "$KIT"/adapters/claude-code/agents/*.md   .claude/agents/
 cp "$KIT"/adapters/claude-code/commands/*.md .claude/commands/
-cp -R "$KIT"/core/skills/* "$KIT"/profiles/* .claude/skills/
+cp -R "$KIT"/core/skills/* "$KIT"/profiles/* "$KIT"/profiles/*/skills/* .claude/skills/
 cp "$KIT"/templates/project.md        .audit/project.md     # fill in the six-line Intake
 uv run --frozen --project "$KIT" audit-kit detect .      # writes .audit/detected.md
 cp "$KIT"/config/models.example.yaml  .audit/models.yaml    # then edit it

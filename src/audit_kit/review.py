@@ -15,7 +15,7 @@ import re
 import secrets
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -61,7 +61,13 @@ class Prepared:
     bytes: int
 
 
-def prepare(ws: Workspace, units: list[Unit], kit_home: Path, version: str) -> Prepared:
+def prepare(
+    ws: Workspace,
+    units: list[Unit],
+    kit_home: Path,
+    version: str,
+    pack_dirs: Sequence[Path] = (),
+) -> Prepared:
     """Write every unit's brief.md and brief.json.
 
     The index reads each scan file once, and the rules are chosen once per kind.
@@ -75,7 +81,9 @@ def prepare(ws: Workspace, units: list[Unit], kit_home: Path, version: str) -> P
     for u in units:
         kind = skill_sections.kind_of(u)
         if kind not in rules:
-            rules[kind] = skill_sections.sections_for(kind, kit_home, profiles)
+            rules[kind] = skill_sections.sections_for(
+                kind, kit_home, profiles, pack_dirs
+            )
         built = brief.build_brief(
             ws, u, index, rules[kind], gates.unit_gates(index, u), schema, version
         )

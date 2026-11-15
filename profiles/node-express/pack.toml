@@ -1,0 +1,7 @@
+name = "node-express"
+type = "stack"
+version = "1.0.0"
+summary = "Node.js and Express applications."
+languages = ["JavaScript", "TypeScript"]
+check_prefixes = ["NODE", "EXP"]
+borrows = ["FE"]

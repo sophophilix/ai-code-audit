@@ -25,6 +25,8 @@ class KitSettings:
     eslint: Path
     tsc: Path
     claude: Path
+    # Folders of private packs, outside the kit (ADR 0012 D5).
+    pack_dirs: tuple[Path, ...] = ()
 
     @classmethod
     def load(cls, environ: Mapping[str, str] | None = None) -> KitSettings:
@@ -32,7 +34,8 @@ class KitSettings:
 
         Environment variables: AUDIT_KIT_HOME, AUDIT_PROJECTS_DIR,
         AUDIT_WORKSPACES_DIR, DRAWIO_SKILL_DIR, JSCPD_BIN, ESLINT_BIN, TSC_BIN,
-        CLAUDE_BIN (the Claude Code CLI that `kit review` runs passes with).
+        CLAUDE_BIN (the Claude Code CLI that `kit review` runs passes with),
+        AUDIT_KIT_PACKS (folders of private packs, separated like PATH).
 
         Raises:
             AuditKitError: If the kit folder (with its VERSION file) can't be found.
@@ -67,4 +70,9 @@ class KitSettings:
             ),
             tsc=Path(env.get("TSC_BIN") or home / "audit-tools/node_modules/.bin/tsc"),
             claude=Path(env.get("CLAUDE_BIN") or "claude"),
+            pack_dirs=tuple(
+                Path(p).expanduser()
+                for p in env.get("AUDIT_KIT_PACKS", "").split(os.pathsep)
+                if p.strip()
+            ),
         )

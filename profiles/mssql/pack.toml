@@ -1,0 +1,6 @@
+name = "mssql"
+type = "stack"
+version = "1.0.0"
+summary = "Microsoft SQL Server schema, queries and data access."
+languages = ["SQL"]
+check_prefixes = ["SQL"]

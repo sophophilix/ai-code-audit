@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.20.0 – 2026-11-14: Knowledge packs
+The kit becomes a stack-neutral framework that loads its knowledge from packs
+(ADR 0011). This release builds the pack contract, private packs and the Python
+pack as the reference (ADR 0012). Nobody has run the evaluation for this version.
+- **Every profile is a pack with a manifest.** `pack.toml` gives the name, type
+  (`stack`, `platform`, `concern` or `sector`), version, the languages the pack
+  covers and the CHECK-ID prefixes it owns or borrows. The seven profiles each
+  have one.
+- **`kit pack-check`.** Checks pack folders against the contract: the manifest,
+  the `SKILL.md` front matter, brief tags, CHECK-ID prefixes, a cited source and
+  pattern entries. With no arguments it checks every installed pack. The kit's
+  tests run it on every pack in `profiles/`.
+- **Pattern entries.** A pack may hold `patterns/<id>.md`: one lesson each, with
+  its sources, dated sightings that never name a client, and the headings
+  Principle, How to check, Good and Bad. They are checked but don't reach a
+  brief yet.
+- **Private packs.** `AUDIT_KIT_PACKS` names folders of packs outside this
+  repository. The intake's `add` line chooses one for an audit, and `kit install`
+  copies a private pack only into a workspace whose intake adds it. `kit detect`
+  reports an added pack that isn't installed.
+- **Python rules travel with the Python pack.** `python-review` moved from
+  `core/skills/` to `profiles/python/skills/python-review/`. `kit install` still
+  installs it as the skill `python-review`. A Python unit's brief lists its rules
+  in a new order, so `kit review` reviews Python units from a 0.19.0 audit again.
+- **Languages covered come from the manifests.** `detection.py` no longer holds a
+  table of languages for each profile.
+- Installing by hand copies one more path, `profiles/*/skills/*`. The Claude Code
+  adapter guide and the how-to show it.
+
 ## 0.19.0 – 2026-11-13: Python targets
 From the first run of the kit on a Python application (a local-first CLI of about
 30,000 lines). Before this release that run had 0 file-review units, no dependency

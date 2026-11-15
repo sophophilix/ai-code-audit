@@ -63,7 +63,19 @@ def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         found = shutil.which(tool)
         if found:
             (bin_dir / tool).symlink_to(found)
+    for name in ("demo-private", "other-private"):
+        private = tmp_path / "packs" / name
+        private.mkdir(parents=True)
+        (private / "pack.toml").write_text(
+            f'name = "{name}"\ntype = "sector"\nversion = "1.0.0"\n'
+            'summary = "A private pack for tests."\n'
+        )
+        (private / "SKILL.md").write_text(
+            f"---\nname: {name}\ndescription: Use in tests.\n---\n"
+            "# Demo\nSource: https://example.org/standard\n"
+        )
     for key, value in {
+        "AUDIT_KIT_PACKS": tmp_path / "packs",
         "AUDIT_PROJECTS_DIR": tmp_path / "projects",
         "AUDIT_WORKSPACES_DIR": tmp_path / "ws",
         "DRAWIO_SKILL_DIR": tmp_path / "none",
@@ -115,7 +127,9 @@ def project(env: Path, kit: Kit) -> Path:
     folder = env / "projects/demo"
     text = (folder / "project.md").read_text()
     (folder / "project.md").write_text(
-        text.replace("<e.g. NSW local council>", "NSW local council")
+        text.replace("<e.g. NSW local council>", "NSW local council").replace(
+            "- add:", "- add: demo-private"
+        )
     )
     (folder / "eval-remove.txt").write_text("HANDOFF.md\n")
     (folder / "beliefs.md").write_text("- no-ai: the site uses no AI\n")
@@ -175,6 +189,13 @@ def test_eval_lifecycle(env: Path, source: Path, project: Path, kit: Kit) -> Non
     assert os.access(shim, os.X_OK)
     assert str(KIT / "bin/kit") in shim.read_text()
     assert (ws / ".claude/skills/checkpointing/SKILL.md").is_file()
+    # ADR 0012: a pack's own skills and the private packs are installed too.
+    assert (ws / ".claude/skills/python-review/SKILL.md").is_file()
+    assert (ws / ".claude/skills/demo-private/SKILL.md").is_file()
+    assert (ws / ".audit-kit/profiles/demo-private/pack.toml").is_file()
+    # A private pack the intake doesn't add stays out of the committed setup.
+    assert not (ws / ".claude/skills/other-private").exists()
+    assert not (ws / ".audit-kit/profiles/other-private").exists()
     assert (ws / ".audit/beliefs.md").is_file()
     before = commits(ws)
     assert kit("install", ws)[0] == 0

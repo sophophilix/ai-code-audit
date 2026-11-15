@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -43,11 +44,22 @@ class ValidationResult:
         return not any(i.level == "error" for i in self.issues)
 
 
-def known_profiles(profiles_dir: Path | None) -> frozenset[str] | None:
-    """Return the kit's profile names, or None when no folder is given."""
+def known_profiles(
+    profiles_dir: Path | None, pack_dirs: Sequence[Path] = ()
+) -> frozenset[str] | None:
+    """Return the names of the kit's packs and the private ones.
+
+    Returns None when no kit folder is given, which skips the check.
+    """
     if profiles_dir is None or not profiles_dir.is_dir():
         return None
-    return frozenset(p.name for p in profiles_dir.iterdir() if p.is_dir())
+    return frozenset(
+        p.name
+        for root in (profiles_dir, *pack_dirs)
+        if root.is_dir()
+        for p in root.iterdir()
+        if p.is_dir()
+    )
 
 
 def _read(
