@@ -94,6 +94,13 @@ Paths below are relative to the root of the repository being audited (the
     `plan.md` if it exists, save after every work item, and never keep
     findings only in your head.
 
+## Rules the harness enforces
+
+Where the harness supports hooks, the kit checks every shell command and every
+write against rules 1 and 2 before it runs, and checks your output file when
+you finish (ADR 0013). A message that starts `Refused by the audit kit` is a
+rule, not a fault. Don't look for another way to do the same thing.
+
 ## Shared skills
 
 - `audit-findings`: finding format, IDs, keys, severity, provenance header. Always load it.

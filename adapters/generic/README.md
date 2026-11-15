@@ -18,6 +18,12 @@ shell commands, and load instructions. Everything else is optional.
 5. Restrict permissions with the tool's own controls: read-only on source,
    no package managers, no network except the allowed documentation domains.
    Use the tool's sandbox or a container where it has one.
+   The Claude Code adapter enforces three checks with hooks (ADR 0013). Apply
+   the same three with your tool's controls, or by hand:
+   - a shell command runs only if every part of it is on the read-only list in
+     ADR 0013 D2
+   - a write goes only under `.audit/`, and never to `.audit/policy.yaml`
+   - `kit verify` runs on an agent's output before its pass counts as finished
 6. No coordinator support? The tech lead follows `core/runbook.md` by hand.
    The coordinator file is still a useful checklist.
 7. Verifier: always a fresh session, from a different model family than the

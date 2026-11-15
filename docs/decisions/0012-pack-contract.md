@@ -179,6 +179,9 @@ list of skills. The other six packs get a manifest and are otherwise unchanged.
   accessibility packs.
 - Detection rules, unit kinds, gates and scanners declared by a pack rather
   than written in the core (ADR 0011, Consequences).
+- The documentation domains an agent may read, declared by a pack. One list in
+  the adapter's settings and the intake template still holds them (ADR 0013,
+  Not in this decision).
 
 ## Rejected
 
@@ -197,4 +200,5 @@ list of skills. The other six packs get a manifest and are otherwise unchanged.
 | Date (UTC) | Reviewer | Outcome |
 |---|---|---|
 | 2026-11-14 | Claude (author) | Proposed. Built in 0.20.0 with tests, not yet committed. |
+| 2026-11-15 | Claude (author) | Added pack-declared documentation domains to "Not in this decision" |
 | 2026-11-15 | Tech lead | `approve` |

@@ -8,13 +8,17 @@ refused operation; 3 unexpected internal error.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from audit_kit import (
     __version__,
     diagram_style,
+    guard,
     machine,
     outputs,
     packs,
@@ -181,6 +185,11 @@ def _parser() -> argparse.ArgumentParser:
         "check pack folders against the pack contract (default: every installed pack)",
         workspace=False,
     ).add_argument("folders", nargs="*", type=Path, help="pack folders to check")
+    add(
+        "hook",
+        "answer one Claude Code hook event on stdin: exit 2 refuses it (ADR 0013)",
+        workspace=False,
+    )
     return parser
 
 
@@ -309,6 +318,22 @@ def _pack_check(args: argparse.Namespace, s: KitSettings) -> int:
     return EXIT_CHECKS_FAILED if failed else EXIT_OK
 
 
+def _hook(_args: argparse.Namespace, _s: KitSettings) -> int:
+    """Answer one hook event. Any failure refuses, so a broken hook can't let a call through."""
+    try:
+        event = guard.Event.model_validate_json(sys.stdin.read())
+        root = Path(os.environ.get("CLAUDE_PROJECT_DIR") or event.cwd or ".")
+        reason = guard.refusal(event, root)
+    except ValidationError:
+        reason = "kit hook: the hook event on stdin isn't one the kit can read"
+    except Exception as exc:  # hook boundary: fail closed and say why
+        reason = f"kit hook: {type(exc).__name__}: {exc}"
+    if reason is None:
+        return EXIT_OK
+    print(reason, file=sys.stderr)
+    return EXIT_INVALID
+
+
 def _selftest(_args: argparse.Namespace, s: KitSettings) -> int:
     result = run(
         [sys.executable, "-m", "pytest", "-q"],
@@ -390,6 +415,7 @@ HANDLERS: dict[str, Handler] = {
     "schema": _done(lambda a, s: print(models_schema(), end="")),
     "selftest": _selftest,
     "pack-check": _pack_check,
+    "hook": _hook,
 }
 
 
