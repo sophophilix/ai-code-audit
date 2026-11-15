@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.24.1 – 2026-11-15: A check for a hard-coded credential in Python
+- **`PY-HARDCODED-SECRET`** in the Python catalogue. No check covered a planted
+  token, so the reviewer filed it under other Keys, `PYAPP-CONFIG` among them. The row points at `scans/secrets.json` and Ruff's S105 to S107.
+- The OWASP page it cites was added on 2026-11-15. The page exists. Nobody
+  read its text against the row.
+
 ## 0.24.0 – 2026-11-15: Near-duplicate Python functions
 The near-duplicate check read JavaScript only, so a Python file showed
 `not covered` and a copied helper in a second file stayed invisible to a
