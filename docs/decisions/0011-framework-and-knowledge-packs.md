@@ -153,6 +153,9 @@ used on a real audit. No new pack type, agent or stage is added before then.
   - the discovery agent's item list (`core/agents/discovery.md`). The arc42
     sections are the reference for a stack-neutral list. Items such as routes
     move into packs.
+- Hooks enforce rules 1 and 2 and the output checks on the stage agents from
+  0.21.0 (ADR 0013). That enforces existing rules. It isn't a new pack, agent
+  or stage, so the stopping rule in D7 still holds.
 - A pack has no `supported` or `experimental` status field yet. D6 is a policy
   until an evaluation result exists to record.
 - Checkpoint 2 decisions are still not stored. D6 needs that before the third
@@ -190,4 +193,5 @@ used on a real audit. No new pack type, agent or stage is added before then.
 |---|---|---|
 | 2026-11-14 | Claude (author) | Proposed, from a design discussion with the tech lead |
 | 2026-11-15 | Claude (author) | Added arc42 as the reference for a stack-neutral discovery list, and Azure Review Checklists as a source for the Azure pack, at the tech lead's request |
+| 2026-11-15 | Claude (author) | Added the pointer to ADR 0013 under Consequences |
 | 2026-11-15 | Tech lead | `approve` |

@@ -19,6 +19,7 @@
       "Bash(head:*)",
       "Bash(sed -n:*)",
       "Bash(.audit-kit/bin/checkpoint:*)",
+      "Bash(.audit-kit/bin/kit query:*)",
       "WebFetch(domain:learn.microsoft.com)",
       "WebFetch(domain:azure.github.io)",
       "WebFetch(domain:expressjs.com)",
@@ -42,6 +43,14 @@
       "Bash(node:*)",
       "Bash(python:*)",
       "Bash(python3:*)",
+      "Bash(bun:*)",
+      "Bash(deno:*)",
+      "Bash(uv:*)",
+      "Bash(pip:*)",
+      "Bash(make:*)",
+      "Bash(bash:*)",
+      "Bash(sh:*)",
+      "Bash(zsh:*)",
       "Bash(curl:*)",
       "Bash(wget:*)",
       "Bash(git push:*)",
@@ -53,6 +62,32 @@
       "Bash(rm:*)",
       "Bash(mv:*)",
       "WebSearch"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.audit-kit/bin/kit hook",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "audit-accessibility|audit-architect|audit-discovery|audit-engineer|audit-lead-reviewer|audit-security|audit-verifier",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.audit-kit/bin/kit hook",
+            "timeout": 300
+          }
+        ]
+      }
     ]
   }
 }

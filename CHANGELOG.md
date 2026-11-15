@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.21.0 – 2026-11-15: Hooks enforce the rules
+A program, not the prompt, now holds the stage agents to rules 1 and 2 and
+checks their output when they finish (ADR 0013, which takes up ADR 0008 D3).
+Nobody has run the evaluation for this version.
+- **`kit hook`.** Reads one Claude Code hook event on stdin. Exit code 0 allows
+  it, and exit code 2 refuses it with the reason on stderr. A hook that can't
+  read its input, or fails, refuses.
+- **Before a tool call.** A shell command runs only if every part of it is on a
+  short read-only list. The check reads the whole command line: pipes,
+  redirects, second commands and line breaks. It refuses command substitution,
+  subshells, background commands and here-documents. A redirect or a write tool
+  may write only under `.audit/`, and never to `.audit/policy.yaml`.
+- **When a stage agent finishes.** The hook runs `kit verify` and sends the
+  agent back once with the failures on its own output. A pass that hands over
+  with `status: in-progress` isn't judged.
+- **The example settings install both hooks.** They also deny `make`, `bash`,
+  `sh`, `zsh`, `bun`, `deno`, `uv` and `pip`, and allow `.audit-kit/bin/kit query`.
+  `kit install` keeps an existing `.claude/settings.json`: delete it and install
+  again to get the hooks in an older workspace.
+- The hook refuses `awk`, `xargs` and `cd`. The `large-codebase-navigation`
+  skill now finds long lines with `rg`.
+- One live run in Claude Code 2.1.311 covered the tool-call hook. Nobody has
+  run the agent-finish hook inside Claude Code.
+
 ## 0.20.0 – 2026-11-14: Knowledge packs
 The kit becomes a stack-neutral framework that loads its knowledge from packs
 (ADR 0011). This release builds the pack contract, private packs and the Python

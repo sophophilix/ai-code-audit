@@ -7,6 +7,7 @@ runs; one test also drives bin/kit itself to prove the wrapper.
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -196,6 +197,9 @@ def test_eval_lifecycle(env: Path, source: Path, project: Path, kit: Kit) -> Non
     # A private pack the intake doesn't add stays out of the committed setup.
     assert not (ws / ".claude/skills/other-private").exists()
     assert not (ws / ".audit-kit/profiles/other-private").exists()
+    # ADR 0013: the workspace's settings send tool calls and agent stops to the kit.
+    hooks = json.loads((ws / ".claude/settings.json").read_text())["hooks"]
+    assert set(hooks) == {"PreToolUse", "SubagentStop"}
     assert (ws / ".audit/beliefs.md").is_file()
     before = commits(ws)
     assert kit("install", ws)[0] == 0

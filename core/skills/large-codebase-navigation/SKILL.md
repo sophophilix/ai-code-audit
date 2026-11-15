@@ -13,7 +13,7 @@ then read narrow ranges, and reuse what discovery already mapped.
 1. **Reuse first.** Read the "Behaviour map", "Routes" and "Integrations"
    sections of `.audit/01-discovery.md` before opening code.
 2. **Measure.** Use `.audit/scans/cloc.json` or `wc -l`. Note files over
-   1,000 lines and files with very long lines (`awk 'length > 200'`). Long
+   1,000 lines and files with very long lines (`rg -c '.{201,}'`). Long
    lines hide logic from line-based reading.
 3. **Search, don't scroll.** Use the search patterns in the active stack
    profile (routes, outbound calls, config reads, file writes, logging,

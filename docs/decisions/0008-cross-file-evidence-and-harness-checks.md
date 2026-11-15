@@ -1,6 +1,6 @@
 # ADR 0008: Cross-file evidence for the file review, and checks the harness enforces
 
-> Status: Approved (D1 and D2); D3 to D7 deferred
+> Status: Approved (D1 and D2); D3 taken up by ADR 0013; D4 to D7 deferred
 > Created: 2026-11-08T22:46:00Z
 > Last reviewed: 2026-11-09T11:57:43Z
 > Next review: Not scheduled
@@ -106,7 +106,10 @@ results suggest retrieved context can cost a model accuracy, and tools would
 undo ADR 0007's cost and isolation. Questions only another file can answer stay
 open edges, and the trace stage (1b), which has read-only tools, answers them.
 
-### D3. Hooks enforce what the prompt only asks (deferred)
+### D3. Hooks enforce what the prompt only asks (taken up by ADR 0013)
+
+ADR 0013 decides this and differs in one point: it sends an agent back once,
+not until its output passes. The proposal below is kept as written.
 
 Workspaces already get Claude Code permissions from
 `adapters/claude-code/settings.audit.example.json`: an allow list of read-only

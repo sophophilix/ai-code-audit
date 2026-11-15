@@ -38,8 +38,24 @@ Claude Code loads them automatically, and they're untrusted.
   ready-to-run prompts.
 - Verifier: always a fresh context. A subagent gives that by default.
 
+## Hooks (ADR 0013)
+`settings.audit.example.json` also sets two hooks. Both run
+`.audit-kit/bin/kit hook`, which is Python with no model involved.
+- **Before `Bash`, `Write`, `Edit`, `MultiEdit` and `NotebookEdit`.** The hook
+  refuses a shell command that isn't on the read-only list, and a write
+  outside `.audit/` or to `.audit/policy.yaml`. It reads the whole command, so
+  a pipe, a redirect or a second command doesn't get past it.
+- **When an `audit-<role>` subagent finishes.** The hook runs `kit verify` and
+  sends the agent back once with the failures on its own output.
+
+A hook never grants permission. When it has no objection, the permissions
+above decide. If the hook itself fails, it refuses.
+
+`kit install` keeps a `.claude/settings.json` that already exists. To get the
+hooks in an older workspace, delete that file and run `kit install` again.
+
 ## Limits to be aware of
-- Permission rules aren't a sandbox: an allowed shell command can still write
+- Permission rules and hooks aren't a sandbox: an allowed shell command can still write
   files. Use Claude Code's sandbox mode or a container with no network for
   real isolation. That's why the workspace is disposable.
 - `Edit(./.audit/**)` allows writes only under `.audit/`. Other writes prompt
