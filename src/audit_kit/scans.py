@@ -62,8 +62,9 @@ SEMGREP_RULESETS: dict[ecosystems.Ecosystem, tuple[str, ...]] = {
 PYTHON_NOT_RUN = (
     "typecheck (Python): not run; mypy and pyright need the target's dependencies "
     "installed, and the kit never installs them (ADR 0010 D3)",
-    "unused (Python): not run; the unused-code analysis reads JavaScript only",
 )
+GITLEAKS_CONFIG = "config/gitleaks.toml"
+GITLEAKS_IGNORE = ".gitleaksignore"
 
 
 def tsconfig(root: Path, excludes: list[str], tsc: Path) -> str:
@@ -172,6 +173,14 @@ class _Scanner:
             self.missing.append(f"{name}: produced no output")
 
 
+def _ignored_leaks(ws: Workspace) -> int:
+    """Count the findings a target's .gitleaksignore tells gitleaks to leave out."""
+    if not ws.is_file(GITLEAKS_IGNORE):
+        return 0
+    lines = ws.read_text(GITLEAKS_IGNORE).splitlines()
+    return sum(1 for x in lines if x.strip() and not x.lstrip().startswith("#"))
+
+
 def scan(s: KitSettings, given: str, *, force: bool = False) -> None:
     """Run every installed scanner; existing outputs are kept unless force is set."""
     loc = locate(s, given)
@@ -216,10 +225,16 @@ def scan(s: KitSettings, given: str, *, force: bool = False) -> None:
 
     def gitleaks(target: Path) -> None:
         mode = "dir" if loc.state.get("mode") == "eval" else "git"
+        # The kit's rules only, and no `gitleaks:allow` comment hides a row. The
+        # target's own .gitleaks.toml would otherwise apply, and it can allow-list
+        # anything.
         run(
             [
                 "gitleaks",
                 mode,
+                "--config",
+                s.kit_home / GITLEAKS_CONFIG,
+                "--ignore-gitleaks-allow",
                 "--redact",
                 "--exit-code",
                 "0",
@@ -290,6 +305,14 @@ def scan(s: KitSettings, given: str, *, force: bool = False) -> None:
 
     scanner("cloc", "cloc", "cloc.json", cloc)
     scanner("secrets", "gitleaks", "secrets.json", gitleaks)
+    ignored = _ignored_leaks(ws)
+    if ignored:
+        note = (
+            f"secrets: the target's {GITLEAKS_IGNORE} lists {ignored} finding(s) that "
+            "gitleaks leaves out, and no option turns that file off"
+        )
+        warn(note)
+        scanner.missing.append(note)
     if locks:
         scanner("deps-audit", "osv-scanner", "deps-audit.json", osv)
     else:

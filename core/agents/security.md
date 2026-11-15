@@ -27,7 +27,9 @@ Write `.audit/04-security.md`:
    bots, authenticated users, staff, insiders, compromised dependencies),
    entry points, trust boundaries. Apply STRIDE to each boundary and note
    which threats the code addresses and which it doesn't.
-2. **Secrets and credentials**: triage **every** hit in `scans/secrets.json`: real
+2. **Secrets and credentials**: never copy a value into an output, not even a
+   test value: write `****`. `kit verify` fails an output that holds a value the
+   scan found (OUT-R7). Triage **every** hit in `scans/secrets.json`: real
    credential or test/placeholder value, with the evidence that decides it (e.g. an
    offline test script whose other settings are dummies). Each hit gets a finding
    (Key `X-secret-<rule>:<file>`; a test value is `info`, a plausible real one

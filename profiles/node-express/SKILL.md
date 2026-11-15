@@ -84,7 +84,7 @@ scripts, and never load its lint or test config.
 ```
 cloc --exclude-dir=node_modules --json . > .audit/scans/cloc.json
 npm audit --json --package-lock-only > .audit/scans/deps-audit.json   # or: osv-scanner --format json -L package-lock.json
-gitleaks git --redact --report-format json --report-path .audit/scans/secrets.json .
+gitleaks git --config .audit-kit/config/gitleaks.toml --ignore-gitleaks-allow --redact --report-format json --report-path .audit/scans/secrets.json .   # `kit scan` runs this
 semgrep scan --config p/javascript --config p/expressjs --config p/owasp-top-ten --sarif -o .audit/scans/sast.sarif .
 jscpd --reporters json --output .audit/scans/jscpd --ignore "**/node_modules/**" .   # copy jscpd-report.json → duplication.json
 eslint --config .audit-kit/config/eslint.config.mjs --no-inline-config -f json -o .audit/scans/lint.json .   # `kit scan` runs this

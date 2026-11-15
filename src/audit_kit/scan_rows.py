@@ -21,6 +21,8 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 from audit_kit import code_facts
 from audit_kit.ecosystems import JS_FILES, PY_FILES
 from audit_kit.errors import WorkspaceError
+from audit_kit.leaks import Leaks
+from audit_kit.leaks import load as load_leaks
 from audit_kit.units import Unit
 from audit_kit.workspace import Workspace
 
@@ -583,6 +585,8 @@ class ScanIndex:
     problems: dict[str, str] = field(default_factory=dict)
     # Files a tool says it examined, for the tools that say (ESLint, tsc).
     examined: dict[str, frozenset[str]] = field(default_factory=dict)
+    # Where the secret scan's values are, so a brief can mask them.
+    leaks: Leaks = field(default_factory=Leaks)
 
     def of(self, source: str, path: str) -> list[Row]:
         """Return one source's rows about one file, in line order."""
@@ -657,7 +661,7 @@ def _examined(ws: Workspace, match: Match, index: ScanIndex) -> None:
 def build_index(ws: Workspace, paths: set[str]) -> ScanIndex:
     """Read every scan file once and index its rows for the given files."""
     match = _matcher(ws, paths)
-    index = ScanIndex()
+    index = ScanIndex(leaks=load_leaks(ws, match))
     _examined(ws, match, index)
     for source in SOURCES:
         if not ws.is_file(source.rel) or not ws.size(source.rel):

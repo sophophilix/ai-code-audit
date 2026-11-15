@@ -20,7 +20,7 @@ from pathlib import PurePosixPath
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from audit_kit import brief, search
+from audit_kit import brief, leaks, search
 from audit_kit.detection import loaded_profiles
 from audit_kit.errors import OutsideWorkspaceError, WorkspaceError
 from audit_kit.findings import HEADING, ID_RE, Finding, parse_findings
@@ -68,6 +68,8 @@ RECORD_SECTIONS = (
     "Limitations",
 )
 PILOT = ".audit/work/files/pilot.txt"
+# One failed line for each output that holds a secret value, up to this many.
+SECRET_FILES_SHOWN = 10
 
 
 class Status(StrEnum):
@@ -550,6 +552,7 @@ def check(ws: Workspace) -> Report:
             + (f"; {len(vague)} without meaningful alt text" if vague else ""),
         )
 
+    _check_secret_values(ws, report)
     _check_recommended(ws, report)
     _check_backlog(ws, report)
     _check_diagrams(ws, report)
@@ -810,6 +813,62 @@ def _check_backlog(ws: Workspace, report: Report) -> None:
         "acceptance criteria"
         + (f" missing on rows {no_ac[:5]}" if no_ac else " present"),
     )
+
+
+def _check_secret_values(ws: Workspace, report: Report) -> None:
+    """OUT-R7: no output holds a value the secret scan found in the target.
+
+    Every text file under `.audit/` is searched except `scans/`. Only the file
+    and its lines are reported, never the value.
+    """
+    if not ws.is_file(leaks.SCAN):
+        report.skip("OUT-R7", "no secrets.json yet")
+        return
+    found = leaks.load(ws)
+    if found.problem:
+        report.add("OUT-R7", False, f"secrets.json not readable ({found.problem})")
+        return
+    outputs = Workspace(ws.path(".audit")).tree(skip_root=frozenset({"scans"})).files
+    holding: list[str] = []
+    searched = 0
+    for rel in outputs:
+        if not leaks.searchable(rel):
+            continue
+        try:
+            text = ws.read_text(PurePosixPath(".audit") / rel, limit=50_000_000)
+        except WorkspaceError:
+            continue
+        searched += 1
+        lines = found.lines_holding(text)
+        if lines:
+            shown = ", ".join(str(n) for n in lines[:5])
+            more = f" and {len(lines) - 5} more" if len(lines) > 5 else ""
+            holding.append(
+                f"{rel}: holds a value the secret scan found, at line(s) "
+                f"{shown}{more}; replace it with {leaks.MASK}"
+            )
+    for detail in holding[:SECRET_FILES_SHOWN]:
+        report.add("OUT-R7", False, detail)
+    if len(holding) > SECRET_FILES_SHOWN:
+        report.add(
+            "OUT-R7",
+            False,
+            f"{len(holding) - SECRET_FILES_SHOWN} more outputs hold a value",
+        )
+    if not holding:
+        located = found.total - found.unlocated
+        report.add(
+            "OUT-R7",
+            True,
+            f"{searched} outputs searched for {located} of {found.total} scan "
+            "findings; none holds a value"
+            + (
+                f" ({found.unlocated} not in the files as they are now, so not "
+                "searched for)"
+                if found.unlocated
+                else ""
+            ),
+        )
 
 
 def _check_diagrams(ws: Workspace, report: Report) -> None:

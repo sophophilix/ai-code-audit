@@ -49,6 +49,31 @@ def test_a_secret_appears_as_its_rule_and_line_only(
     assert "- 2: generic-api-key: Generic key (value not shown)" in text
 
 
+def test_a_value_the_secret_scan_placed_is_masked_in_the_code(
+    ws: Workspace, units: list[Unit], route: Unit
+) -> None:
+    # Line 5 of the fixture: `  const folder = req.query.folder;`
+    leak = {
+        "File": "lib/export.js",
+        "RuleID": "rule",
+        "StartLine": 5,
+        "EndLine": 5,
+        "StartColumn": 17,
+        "EndColumn": 35,
+        "Match": "= REDACTED;",
+    }
+    ws.write_text(".audit/scans/secrets.json", json.dumps([leak]))
+    review.prepare(ws, units, Path(__file__).resolve().parents[3], "9.9.9")
+    text = text_of(ws, route)
+    assert "5    const folder = ****;" in text
+    assert "req.query.folder" not in text
+    assert "shown as `****`" in text
+    # The record is reused by the real text's hash, not the masked text's.
+    meta = brief.read_meta(ws, route.id)
+    assert meta is not None
+    assert meta.unit_sha256 == brief.sha256(brief.unit_text(ws, route)[1])
+
+
 def test_a_scan_that_did_not_run_says_so(
     ws: Workspace, briefs: list[Unit], route: Unit
 ) -> None:

@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.23.0 – 2026-11-15: Secret values stay out
+From the same evaluation pilot. gitleaks ran and missed a planted token passed
+as a header value, and the file reviewer copied that token into its record
+three times.
+- **The kit's gitleaks rules** (`config/gitleaks.toml`). The default rules stay
+  on. Two more find a literal credential after `Bearer`, `Basic` or `Token`, and
+  a literal passed beside a credential name such as `"X-Api-Key"`. The default
+  rules match a known vendor shape or an assignment, so they miss both.
+- **The target can't hide a leak.** `kit scan` passes the kit's config and
+  `--ignore-gitleaks-allow`. Before, a `.gitleaks.toml` in the target applied,
+  and one that allow-lists every path returned no findings. gitleaks has no
+  option to turn off a target's `.gitleaksignore`, so `kit scan` warns and
+  `MISSING.txt` says how many findings that file lists.
+- **A brief shows `****` for a value the scan found.** The scan is written
+  redacted. The kit finds each value again in the file from the finding's line
+  and the text around it, in memory, and masks it before the brief is written.
+  The model never receives the value. The excerpt check already accepts `****`.
+- **OUT-R7 is now checked by `kit verify`.** It was listed as automatic and
+  nothing ran it. An output under `.audit/` that holds a value the scan found
+  fails, with the file and its lines. The agent-finish hook sends a stage agent
+  back for it.
+- Limits: a secret that no rule finds is neither masked nor checked. A value
+  that is only in git history isn't searched for. A lower-case word with no digit
+  isn't reported by the two new rules.
+- To pick this up in a workspace: delete `.audit/scans/secrets.json` and run
+  `kit scan`, which also rewrites the briefs.
+
 ## 0.22.0 – 2026-11-15: No empty scans
 From the first evaluation pilot on a Python target. A planted unused dependency
 was missed in three runs out of three: the unused-code scan read JavaScript only,
