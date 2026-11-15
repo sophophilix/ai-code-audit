@@ -20,8 +20,10 @@ It has, in order:
 - **Code**: the unit's lines. Each starts with its line number in the file.
   The number isn't part of the code.
 - **Scan rows**: this file's rows from every scan, limited to the unit's lines,
-  with a table of counts. A scan that says `not run` or `unreadable` is a
-  limitation, never a pass. Where a rule below says to read a scan file or grep
+  with a table of counts. Only `ran` with 0 rows means the scan looked at this
+  file and found nothing. A scan that says `not run`, `unreadable` or
+  `not covered` says nothing about the file: it is a limitation, never a pass,
+  and never the reason a check is `not found`. Where a rule below says to read a scan file or grep
   the file, use these rows and the code: they are all there is.
 - **Gates**: what each tool said about this unit. The kit adds this table to the
   record; don't repeat it.

@@ -238,7 +238,7 @@ def test_any_rows_render_as_many_as_the_table_counts(
     unit = Unit("u001", "a.js", "", 1, 1, "file")
     part = (
         "\n## Scan rows\n"
-        + "\n".join(brief.scan_part(scan_rows.unit_rows(index, unit), index))
+        + "\n".join(brief.scan_part(scan_rows.unit_rows(index, unit), index, unit.path))
         + "\n## Gates\n"
     )
     assert brief.parse_scan_table(part) == brief.count_rendered_rows(part)

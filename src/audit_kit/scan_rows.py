@@ -19,6 +19,7 @@ from pathlib import PurePosixPath
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from audit_kit import code_facts
+from audit_kit.ecosystems import JS_FILES, PY_FILES
 from audit_kit.errors import WorkspaceError
 from audit_kit.units import Unit
 from audit_kit.workspace import Workspace
@@ -29,24 +30,44 @@ TSC_LINE = re.compile(r"^(?P<file>.+?)\((?P<line>\d+),\d+\): (?P<text>.*)$")
 
 @dataclass(frozen=True)
 class Source:
-    """One scan a brief draws rows from."""
+    """One scan a brief draws rows from.
+
+    Attributes:
+        name: The scan's name in a brief.
+        rel: The scan's output file.
+        what: The tool and configuration, for the heading above its rows.
+        reads: Endings of the file names the scan examines. Empty means any file.
+    """
 
     name: str
     rel: PurePosixPath
     what: str
+    reads: tuple[str, ...] = ()
 
 
+_JS = (*JS_FILES, "package.json")
+_STYLED = (
+    ".css", ".scss", ".sass", ".less", ".html", ".htm", ".ejs", ".hbs", ".handlebars",
+    ".njk", ".pug", ".vue", ".svelte", ".cshtml", ".razor", ".jsx", ".tsx",
+)  # fmt: skip
 SOURCES = (
-    Source("lint", PurePosixPath(".audit/scans/lint.json"), "ESLint, the kit's config"),
+    Source(
+        "lint",
+        PurePosixPath(".audit/scans/lint.json"),
+        "ESLint, the kit's config",
+        JS_FILES,
+    ),
     Source(
         "typecheck",
         PurePosixPath(".audit/scans/typecheck.txt"),
         "tsc --checkJs, the kit's tsconfig",
+        JS_FILES,
     ),
     Source(
         "lint-python",
         PurePosixPath(".audit/scans/lint-python.json"),
         "Ruff, the kit's config; the target's suppressions ignored",
+        PY_FILES,
     ),
     Source("sast", PurePosixPath(".audit/scans/sast.sarif"), "Semgrep"),
     Source(
@@ -59,24 +80,31 @@ SOURCES = (
         "similar",
         PurePosixPath(".audit/scans/similar.json"),
         "the kit's near-duplicate function check",
+        (".js", ".cjs", ".mjs"),
     ),
     Source(
         "suppressions",
         PurePosixPath(".audit/scans/suppressions.json"),
         "comments that switch checks off",
+        code_facts.CODE,
     ),
     Source(
         "blindspots",
         PurePosixPath(".audit/scans/blindspots.json"),
         "code static analysis can't see into",
+        (".js", ".cjs", ".mjs", *code_facts.HTML, *PY_FILES),
     ),
     Source(
         "unused",
         PurePosixPath(".audit/scans/unused.json"),
         "the kit's unused-code analysis",
+        (".js", ".cjs", ".mjs", "package.json", *PY_FILES, "pyproject.toml"),
     ),
     Source(
-        "knip", PurePosixPath(".audit/scans/dynamic/knip.json"), "knip, in the sandbox"
+        "knip",
+        PurePosixPath(".audit/scans/dynamic/knip.json"),
+        "knip, in the sandbox",
+        _JS,
     ),
     Source(
         "secrets",
@@ -87,6 +115,7 @@ SOURCES = (
         "design",
         PurePosixPath(".audit/scans/design-inventory.json"),
         "contrast pairs from the design inventory",
+        _STYLED,
     ),
 )
 NAMES = tuple(s.name for s in SOURCES)
@@ -98,6 +127,8 @@ class ScanStatus(StrEnum):
     RAN = "ran"
     NOT_RUN = "not run"
     UNREADABLE = "unreadable"
+    # The scan ran, and this kind of file isn't one it examines.
+    NOT_COVERED = "not covered"
 
 
 @dataclass(frozen=True)
@@ -212,6 +243,8 @@ class _NamedLine(_Scan):
     file: str
     name: str
     line: int | None = None
+    # The whole row text, when the analysis wrote one (Python rows do).
+    note: str = ""
 
 
 class _UnusedDependency(_Scan):
@@ -220,6 +253,7 @@ class _UnusedDependency(_Scan):
     # Reports written before 0.18.0 have neither; the root manifest is the one read.
     file: str = "package.json"
     line: int | None = None
+    note: str = ""
 
 
 class _UnusedReport(_Scan):
@@ -413,20 +447,14 @@ def _unused(text: str, _match: Match) -> Found:
             (e.file, Row(e.line, f"export `{e.name}` is used by no other own file"))
         )
     for d in report.unused_dependencies:
-        found.append(
-            (
-                d.file,
-                Row(
-                    d.line,
-                    f"`{d.name}` is declared in {d.section} but no own file requires "
-                    "or imports it, and no script names it",
-                ),
-            )
+        row_text = d.note or (
+            f"`{d.name}` is declared in {d.section} but no own file requires "
+            "or imports it, and no script names it"
         )
+        found.append((d.file, Row(d.line, row_text)))
     for e in report.undeclared_dependencies:
-        found.append(
-            (e.file, Row(e.line, f"`{e.name}` is required but not in package.json"))
-        )
+        row_text = e.note or f"`{e.name}` is required but not in package.json"
+        found.append((e.file, Row(e.line, row_text)))
     return found
 
 
@@ -563,6 +591,22 @@ class ScanIndex:
     def ran(self, source: str) -> bool:
         """Return True if a scan's rows can be used."""
         return self.status.get(source) is ScanStatus.RAN
+
+    def status_for(self, source: Source, path: str) -> ScanStatus:
+        """Return what a scan can say about one file.
+
+        A scan that ran but doesn't examine this file is `not covered`: its
+        empty rows say nothing about the file, so they are never a pass.
+        """
+        status = self.status.get(source.name, ScanStatus.NOT_RUN)
+        if status is not ScanStatus.RAN:
+            return status
+        examined = self.examined.get(source.name)
+        if examined is not None:
+            covered = path in examined
+        else:
+            covered = not source.reads or path.endswith(source.reads)
+        return ScanStatus.RAN if covered else ScanStatus.NOT_COVERED
 
 
 def _matcher(ws: Workspace, wanted: set[str]) -> Match:

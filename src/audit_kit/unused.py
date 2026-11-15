@@ -1,4 +1,6 @@
-"""Static unused-code analysis for JavaScript (CommonJS and ES modules).
+"""Static unused-code analysis for JavaScript, and unused dependencies for Python.
+
+The Python part is in `unused_python`.
 
 Reads the target's own `.js`/`.cjs`/`.mjs` files, its HTML `<script src>` tags and
 `package.json` as text. Nothing is imported, built or run (AGENTS.md rule 2), which
@@ -17,6 +19,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from audit_kit import unused_python
 from audit_kit.inventory import Inventory
 from audit_kit.workspace import Workspace
 
@@ -380,14 +383,19 @@ def analyse(ws: Workspace, inv: Inventory, excluded: tuple[str, ...]) -> dict[st
             if not any(word.search(t) for t in others):
                 unused_exports.append({"file": path, "name": name, "line": line})
 
+    python = unused_python.analyse(ws, own)
+    unused_deps += python.unused
+    undeclared += python.undeclared
+
     return {
         "generated_by": "kit scan: static unused-code analysis (deterministic, no execution)",
         "method": (
-            "Own .js/.cjs/.mjs files, comments removed, parsed with regular expressions "
+            "JavaScript: own .js/.cjs/.mjs files, comments removed, parsed with regular expressions "
             "for require(), import and export. Entry points: package.json main, bin and "
             "files named in scripts, and <script src> in own HTML. A file is unreachable "
             "if no entry point leads to it through relative requires. An export is "
-            "unused if its name appears in no other own .js or .html file."
+            "unused if its name appears in no other own .js or .html file. "
+            + unused_python.METHOD
         ),
         "limits": [
             "Dynamic require() or import() with a computed path is listed, not followed.",
@@ -395,9 +403,13 @@ def analyse(ws: Workspace, inv: Inventory, excluded: tuple[str, ...]) -> dict[st
             "look unreachable; check name_mentioned_in and Chesterton's Fence first.",
             "Regular-expression literals containing // can hide code from the parser.",
             "Unused exports are matched by name only, so a common name can hide one.",
+            *unused_python.LIMITS,
+            *python.problems,
         ],
         "counts": {
             "files": len(code),
+            "python_files": python.files,
+            "python_manifests": python.manifests,
             "entry_points": len(entries),
             "unreachable_files": len(unreachable),
             "dynamic_requires": len(graph.dynamic),

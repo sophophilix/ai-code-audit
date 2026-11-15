@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.22.0 – 2026-11-15: No empty scans
+From the first evaluation pilot on a Python target. A planted unused dependency
+was missed in three runs out of three: the unused-code scan read JavaScript only,
+returned no rows for `pyproject.toml`, and the file reviewer took the empty scan
+as proof that nothing was unused.
+- **Unused and undeclared Python dependencies.** `kit scan` reads every own
+  `pyproject.toml` and parses the imports of the own `.py` files under it,
+  including `import_module`, `__import__` and `find_spec` calls with a literal
+  name. `scans/unused.json` lists a runtime dependency that no file imports, and
+  an import that no declared dependency provides. Each row states the names it
+  looked for. Nothing is imported or run.
+- **`not covered` in a brief's scan table.** A scan that ran but doesn't examine
+  this kind of file now says `not covered`, not `ran` with 0 rows. Only `ran` with
+  0 rows means the scan looked at the file and found nothing. The file reviewer's
+  instructions say a `not covered` scan is never the reason a check is `not found`.
+- Still `not covered` for Python: the near-duplicate function check (`similar`).
+- A brief's scan table and its recorded scan status change, so `kit review`
+  reviews every unit again.
+
 ## 0.21.0 – 2026-11-15: Hooks enforce the rules
 A program, not the prompt, now holds the stage agents to rules 1 and 2 and
 checks their output when they finish (ADR 0013, which takes up ADR 0008 D3).

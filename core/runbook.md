@@ -104,7 +104,7 @@ pinned versions of these against the clone and saves the output in
 | `secrets.json` | gitleaks (full history, redacted) | security |
 | `sast.sarif` | Semgrep (pinned rulesets) | security |
 | `duplication.json` | jscpd | engineer |
-| `unused.json` | the kit's own static analysis of `require` and `import` (`kit scan`). Knip isn't used: its plugins load the target's config files, which runs target code | engineer |
+| `unused.json` | the kit's own static analysis (`kit scan`): JavaScript `require` and `import`, and Python dependencies declared in `pyproject.toml` against the imports of own `.py` files. Knip isn't used: its plugins load the target's config files, which runs target code | engineer |
 | `lint.json` | ESLint run with the **kit's** config, not the target's | engineer |
 | `suppressions.json` | `kit scan`: every `eslint-disable`, `@ts-ignore`, `nosemgrep`, `gitleaks:allow`, `istanbul`/`c8 ignore` and `NOSONAR` comment in own code, with whether it gives a reason | discovery, engineer |
 | `blindspots.json` | `kit scan`: dynamic `require`/`import`, `eval`, `new Function`, string timers and unresolved imports; code static analysis can't see into | discovery, all |
