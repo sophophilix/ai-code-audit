@@ -1,0 +1,6 @@
+name = "web-accessibility"
+type = "concern"
+version = "1.0.0"
+summary = "Web accessibility against WCAG 2.2 AA."
+languages = ["HTML", "CSS", "Razor", "Vue", "Svelte"]
+check_prefixes = ["WCAG"]

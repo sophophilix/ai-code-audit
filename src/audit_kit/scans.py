@@ -475,7 +475,7 @@ def write_units(
     """Write the file review's units (ADR 0002 D1) and their briefs (ADR 0007 D1)."""
     found, problems = units.build_units(ws, inv, excluded)
     ws.write_text(units.OUTPUT, units.render(found))
-    sizes = review.prepare(ws, found, s.kit_home, s.version)
+    sizes = review.prepare(ws, found, s.kit_home, s.version, s.pack_dirs)
     if found:
         ok(
             f"briefs: {sizes.briefs}, {sizes.bytes // sizes.briefs:,} bytes on "

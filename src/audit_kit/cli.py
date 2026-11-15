@@ -17,6 +17,7 @@ from audit_kit import (
     diagram_style,
     machine,
     outputs,
+    packs,
     projects,
     review,
     sandbox,
@@ -25,7 +26,7 @@ from audit_kit import (
     workspaces,
 )
 from audit_kit.console import say
-from audit_kit.detection import detect, write_outputs
+from audit_kit.detection import LANGUAGES, detect, write_outputs
 from audit_kit.errors import AuditKitError
 from audit_kit.runner import run
 from audit_kit.seeding import seed
@@ -175,6 +176,11 @@ def _parser() -> argparse.ArgumentParser:
     add("list", "list workspaces", workspace=False)
     add("schema", "print the JSON Schema for models.yaml", workspace=False)
     add("selftest", "run the kit's own tests", workspace=False)
+    add(
+        "pack-check",
+        "check pack folders against the pack contract (default: every installed pack)",
+        workspace=False,
+    ).add_argument("folders", nargs="*", type=Path, help="pack folders to check")
     return parser
 
 
@@ -187,7 +193,8 @@ def _detect(args: argparse.Namespace, s: KitSettings) -> int:
         workspaces.detect_workspace(s, args.workspace)
         return EXIT_OK
     ws = Workspace(Path(args.workspace))
-    found = detect(ws)
+    installed = packs.find(packs.roots(s.kit_home, s.pack_dirs)).values()
+    found = detect(ws, None, packs.languages(installed))
     write_outputs(ws, found, args.commit or "unknown", args.kit_version or s.version)
     say(f"profiles: {', '.join(found.resolved)}")
     say(f"excluded: {', '.join(e.pattern for e in found.scope.exclusions) or 'none'}")
@@ -205,8 +212,10 @@ def _seed(args: argparse.Namespace, s: KitSettings) -> int:
     return EXIT_OK
 
 
-def _validate_workspace(ws: Workspace, profiles_dir: Path | None) -> bool:
-    result = validate(ws, known_profiles(profiles_dir))
+def _validate_workspace(
+    ws: Workspace, profiles_dir: Path | None, pack_dirs: Sequence[Path] = ()
+) -> bool:
+    result = validate(ws, known_profiles(profiles_dir, pack_dirs))
     ws.write_text(OUTPUT, render_validation(result))
     for issue in result.issues:
         say(f"{issue.level:7} {issue.where}: {issue.message}")
@@ -220,7 +229,7 @@ def _validate(args: argparse.Namespace, s: KitSettings) -> int:
     if not path.is_dir() and (s.workspaces_dir / args.workspace).is_dir():
         path = s.workspaces_dir / args.workspace
     passed = _validate_workspace(
-        Workspace(path), args.profiles_dir or s.kit_home / "profiles"
+        Workspace(path), args.profiles_dir or s.kit_home / "profiles", s.pack_dirs
     )
     try:
         loc = workspaces.locate(s, str(path))
@@ -259,7 +268,7 @@ def _ready(args: argparse.Namespace, s: KitSettings) -> int:
     scans.lookup(s, args.workspace)
     say("== validate")
     loc = workspaces.locate(s, args.workspace)
-    valid = _validate_workspace(loc.ws, s.kit_home / "profiles")
+    valid = _validate_workspace(loc.ws, s.kit_home / "profiles", s.pack_dirs)
     workspaces.checkpoint(loc.ws.root, "validation")
     root = loc.ws.root
     say("")
@@ -278,6 +287,26 @@ def _ready(args: argparse.Namespace, s: KitSettings) -> int:
     say(f"  2. cd {root} && claude      then type: /audit")
     say("  3. interrupted? new session in the same folder: /audit resume")
     return EXIT_OK
+
+
+def _pack_check(args: argparse.Namespace, s: KitSettings) -> int:
+    folders = args.folders or [
+        folder
+        for root in packs.roots(s.kit_home, s.pack_dirs)
+        if root.is_dir()
+        for folder in sorted(root.iterdir())
+        if folder.is_dir() and not folder.name.startswith(".")
+    ]
+    known = frozenset(LANGUAGES.values())
+    failed = 0
+    for folder in folders:
+        issues = packs.check(folder, known)
+        say(f"{'fail' if issues else 'pass'}  {folder.name}")
+        for issue in issues:
+            say(f"      {issue.where}: {issue.message}")
+        failed += bool(issues)
+    say(f"{len(folders)} pack(s) checked, {failed} failed")
+    return EXIT_CHECKS_FAILED if failed else EXIT_OK
 
 
 def _selftest(_args: argparse.Namespace, s: KitSettings) -> int:
@@ -360,6 +389,7 @@ HANDLERS: dict[str, Handler] = {
     "list": _done(lambda a, s: workspaces.list_workspaces(s)),
     "schema": _done(lambda a, s: print(models_schema(), end="")),
     "selftest": _selftest,
+    "pack-check": _pack_check,
 }
 
 

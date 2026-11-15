@@ -1,0 +1,5 @@
+name = "nsw-local-government"
+type = "sector"
+version = "1.0.0"
+summary = "NSW local government cyber security, privacy, records and council digital services."
+check_prefixes = ["NSW"]

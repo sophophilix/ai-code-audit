@@ -62,14 +62,15 @@ core/
   agents/                 coordinator, discovery, architect, engineer, security,
                           accessibility, verifier, lead-reviewer
   skills/                 audit-findings, large-codebase-navigation,
-                          javascript-review, python-review, frontend-review,
+                          javascript-review, frontend-review,
                           ai-generated-code-quality (anti-slop),
                           architecture-diagrams (rules for the pinned drawio-skill),
                           audit-publishing (Markdown → Marp slides, Pandoc Word/PowerPoint),
                           checkpointing (save after every item, LOCK, resume)
-profiles/                 swappable knowledge, picked per project
-  node-express/  python/  mssql/  azure-architecture/  web-accessibility/
-  nsw-local-government/  ai-governance/
+profiles/                 knowledge packs, picked per project (ADR 0012); each has a
+                          pack.toml, and `bin/kit pack-check` checks them
+  node-express/  python/ (with skills/python-review)  mssql/
+  azure-architecture/  web-accessibility/  nsw-local-government/  ai-governance/
 templates/                project.md (+ example)
 evals/                    finding evals (seeded + known issues) and output checks
 adapters/
@@ -107,7 +108,8 @@ On Windows, run the kit in WSL2 (or Git Bash): the Python CLI runs anywhere uv d
 |---|---|
 | A rule for every agent | `AGENTS.md` |
 | How one role works | `core/agents/<role>.md` |
-| Stack, cloud or regulator knowledge | a new `profiles/<name>/SKILL.md` with a check catalogue |
+| Stack, cloud or regulator knowledge | a new pack: `profiles/<name>/` with `pack.toml` and `SKILL.md` (ADR 0012) |
+| Your own practice and sector knowledge | a private pack folder outside this repository, named in `AUDIT_KIT_PACKS` |
 | One project's facts | that project's `.audit/project.md` (never in this repo) |
 | Tool-specific settings | `adapters/` |
 

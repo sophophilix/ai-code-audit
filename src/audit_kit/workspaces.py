@@ -18,9 +18,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
+from audit_kit import packs
 from audit_kit.console import ok, say, skip, warn
 from audit_kit.detection import detect, write_outputs
 from audit_kit.errors import AuditKitError
+from audit_kit.intake import parse_intake
 from audit_kit.inventory import AI_INSTRUCTION_FILES, Inventory, build
 from audit_kit.projects import NAME as WORKSPACE_NAME
 from audit_kit.projects import list_lines, project_dir
@@ -493,12 +495,24 @@ def install(s: KitSettings, given: str, *, no_seed: bool = False) -> None:
     for sub in ("agents", "commands"):
         for md in sorted((adapter / sub).glob("*.md")):
             ws.copy_in(f".claude/{sub}/{md.name}", md)
-    for skill in [
-        *sorted((s.kit_home / "core/skills").iterdir()),
-        *sorted((s.kit_home / "profiles").iterdir()),
-    ]:
+    for skill in sorted((s.kit_home / "core/skills").iterdir()):
         if skill.is_dir():
             ws.copy_in(f".claude/skills/{skill.name}", skill)
+    wanted = _packs_the_intake_adds(loc)
+    for pack in _installed(s):
+        private = pack.folder.parent in s.pack_dirs
+        if private and pack.name not in wanted:
+            # Setup is committed to the workspace, so a private pack is copied
+            # only into an audit whose intake asks for it (ADR 0012 D5).
+            continue
+        ws.copy_in(f".claude/skills/{pack.name}", pack.folder)
+        for skill in pack.skills():
+            ws.copy_in(f".claude/skills/{skill.name}", skill)
+        if private:
+            # Agents read packs under .audit-kit/profiles; a private one isn't
+            # in the kit folder that was copied above.
+            ws.copy_in(f".audit-kit/profiles/{pack.name}", pack.folder)
+            ok(f"private pack: {pack.name}")
     example = adapter / "settings.audit.example.json"
     if not ws.exists(".claude/settings.json"):
         ws.copy_in(".claude/settings.json", example)
@@ -626,11 +640,25 @@ def inventory_workspace(loc: Located) -> tuple[Inventory, str]:
     return inv, commit
 
 
+def _installed(s: KitSettings) -> list[packs.Pack]:
+    return list(packs.find(packs.roots(s.kit_home, s.pack_dirs)).values())
+
+
+def _packs_the_intake_adds(loc: Located) -> tuple[str, ...]:
+    """Return the packs the intake's `add` line names; the workspace copy wins."""
+    if loc.ws.is_file(".audit/project.md"):
+        return parse_intake(loc.ws.read_text(".audit/project.md")).add
+    source = loc.project / "project.md"
+    if source.is_file():
+        return parse_intake(source.read_text(encoding="utf-8")).add
+    return ()
+
+
 def detect_workspace(s: KitSettings, given: str) -> None:
     """Write the inventory, checked against the snapshot commit, then run detection."""
     loc = locate(s, given)
     inv, commit = inventory_workspace(loc)
-    found = detect(loc.ws, inv)
+    found = detect(loc.ws, inv, packs.languages(_installed(s)))
     write_outputs(loc.ws, found, commit[:12], s.version)
     ok(f"inventory: {len(inv.entries)} paths, matches snapshot {commit[:12]}")
     ok(f"profiles: {', '.join(found.resolved)}")

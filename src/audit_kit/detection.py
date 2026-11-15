@@ -9,9 +9,11 @@ from __future__ import annotations
 import hashlib
 import re
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
+from audit_kit import packs
 from audit_kit.ecosystems import lockfiles as find_lockfiles
 from audit_kit.ecosystems import of_paths
 from audit_kit.errors import WorkspaceError
@@ -105,15 +107,9 @@ LANGUAGES = {
     **dict.fromkeys((".bicep",), "Bicep"),
     **dict.fromkeys((".tf",), "Terraform"),
 }
-# Languages each profile knows. Shell is small glue in most repositories and is
-# covered by the general rules, so it is never flagged.
-PROFILE_LANGUAGES = {
-    "node-express": frozenset({"JavaScript", "TypeScript"}),
-    "python": frozenset({"Python"}),
-    "mssql": frozenset({"SQL"}),
-    "web-accessibility": frozenset({"HTML", "CSS", "Razor", "Vue", "Svelte"}),
-    "azure-architecture": frozenset({"Bicep", "Terraform", "PowerShell"}),
-}
+# Each pack's `pack.toml` names the languages it knows (ADR 0012 D1). Shell is
+# small glue in most repositories and is covered by the general rules, so it is
+# never flagged.
 UNCOVERED_SHARE = 0.05
 
 
@@ -196,13 +192,21 @@ def parse_intake(text: str) -> Intake:
     return Intake(jurisdiction=doc.get("organisation"), add=doc.add, remove=doc.remove)
 
 
-def detect(ws: Workspace, inv: Inventory | None = None) -> Detection:
+def detect(
+    ws: Workspace,
+    inv: Inventory | None = None,
+    pack_languages: Mapping[str, frozenset[str]] | None = None,
+) -> Detection:
     """Detect profiles, exclusions and facts for a workspace.
 
     Args:
         ws: The workspace.
         inv: Its inventory; built from the files when not given.
+        pack_languages: The languages each installed pack covers, by pack name.
+            The kit's own packs are read when not given.
     """
+    if pack_languages is None:
+        pack_languages = packs.languages(packs.find([packs.BUILTIN]).values())
     sc = scope(ws, inv)
     problems: list[str] = list(sc.inventory.problems)
     intake_text = ""
@@ -306,6 +310,12 @@ def detect(ws: Workspace, inv: Inventory | None = None) -> Detection:
 
     resolved = [p.name for p in profiles if p.name not in intake.remove]
     resolved += [p for p in intake.add if p not in resolved]
+    problems += [
+        f"the intake adds the pack '{p}', which isn't installed (private packs: "
+        "set AUDIT_KIT_PACKS)"
+        for p in intake.add
+        if p not in pack_languages
+    ]
 
     ai_deps = sorted(d for d in deps if d in AI_DEPS)
     ai_py = sorted(d for d in py_deps if d in AI_DEPS)
@@ -325,7 +335,7 @@ def detect(ws: Workspace, inv: Inventory | None = None) -> Detection:
             by_language[lang] += n
     languages = tuple(sorted(by_language.items(), key=lambda kv: (-kv[1], kv[0])))
     total = sum(by_language.values())
-    covered = {lang for p in resolved for lang in PROFILE_LANGUAGES.get(p, ())}
+    covered = {lang for p in resolved for lang in pack_languages.get(p, ())}
     own_text = [r.as_posix() for r in sc.own]
     return Detection(
         profiles=tuple(profiles),

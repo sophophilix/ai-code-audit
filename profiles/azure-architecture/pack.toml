@@ -1,0 +1,6 @@
+name = "azure-architecture"
+type = "platform"
+version = "1.0.0"
+summary = "Hosting, platform and architecture on Microsoft Azure."
+languages = ["Bicep", "Terraform", "PowerShell"]
+check_prefixes = ["AZ"]

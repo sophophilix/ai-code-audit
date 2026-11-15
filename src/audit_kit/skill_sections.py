@@ -13,7 +13,7 @@ stage agents and never reach a brief.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,7 +39,6 @@ HEADING = re.compile(r"^(?P<hashes>#{2,6}) \S")
 CORE_SKILLS = (
     "audit-findings",
     "javascript-review",
-    "python-review",
     "frontend-review",
     "ai-generated-code-quality",
 )
@@ -130,26 +129,61 @@ def tagged_sections(source: str, text: str) -> list[Section]:
     return sections
 
 
-def skill_files(kit_home: Path, profiles: Iterable[str]) -> list[tuple[str, Path]]:
-    """Return the skill and profile files a brief may draw from, in a fixed order."""
+def pack_files(folder: Path) -> list[Path]:
+    """Return a pack's Markdown files a brief may draw from, in a fixed order.
+
+    The pack's own SKILL.md comes first, then its references, then the skills
+    that travel with it (ADR 0012 D2).
+    """
+    candidates = [
+        folder / "SKILL.md",
+        *sorted(folder.glob("references/*.md")),
+        *sorted(folder.glob("skills/*/SKILL.md")),
+    ]
+    return [p for p in candidates if p.is_file()]
+
+
+def skill_files(
+    kit_home: Path, profiles: Iterable[str], pack_dirs: Sequence[Path] = ()
+) -> list[tuple[str, Path]]:
+    """Return the skill and pack files a brief may draw from, in a fixed order.
+
+    Args:
+        kit_home: The kit folder, which holds the core skills and the kit's packs.
+        profiles: Names of the packs to load.
+        pack_dirs: Folders of private packs, searched after the kit's own.
+    """
     files = [
         (f"core/skills/{name}/SKILL.md", kit_home / f"core/skills/{name}/SKILL.md")
         for name in CORE_SKILLS
     ]
     for profile in profiles:
-        folder = kit_home / "profiles" / profile
-        candidates = [folder / "SKILL.md", *sorted(folder.glob("references/*.md"))]
+        folder = next(
+            (
+                root / profile
+                for root in (kit_home / "profiles", *pack_dirs)
+                if (root / profile).is_dir()
+            ),
+            None,
+        )
+        if folder is None:
+            continue
+        # A private pack gets the same label shape, so a brief never shows where
+        # on this machine the pack lives.
         files += [
-            (p.relative_to(kit_home).as_posix(), p) for p in candidates if p.is_file()
+            (f"profiles/{profile}/{p.relative_to(folder).as_posix()}", p)
+            for p in pack_files(folder)
         ]
     return files
 
 
-def sections_for(kind: str, kit_home: Path, profiles: Iterable[str]) -> list[Section]:
+def sections_for(
+    kind: str, kit_home: Path, profiles: Iterable[str], pack_dirs: Sequence[Path] = ()
+) -> list[Section]:
     """Return every tagged section that applies to a kind of unit."""
     return [
         section
-        for source, path in skill_files(kit_home, profiles)
+        for source, path in skill_files(kit_home, profiles, pack_dirs)
         for section in tagged_sections(source, path.read_text(encoding="utf-8"))
         if section.applies_to(kind)
     ]

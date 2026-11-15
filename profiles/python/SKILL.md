@@ -19,8 +19,9 @@ description: Use when the audited system is a Python application, library or CLI
 - OWASP Secure Coding (Python-relevant cheat sheets): https://cheatsheetseries.owasp.org/
 - OpenSSF Concise Guide for Evaluating Open Source Software: https://best.openssf.org/
 
-The `python-review` core skill holds the language checks (`PY-*`). This profile
-holds the stack and operations checks (`PYAPP-*`) that the stage agents apply.
+The `python-review` skill in this pack (`skills/python-review`) holds the
+language checks (`PY-*`). This file holds the stack and operations checks
+(`PYAPP-*`) that the stage agents apply.
 
 ## What the kit's Python scans show (ADR 0010)
 - `scans/lint-python.json`: Ruff with the kit's `config/ruff.audit.toml`. The

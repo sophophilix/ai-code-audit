@@ -1,0 +1,4 @@
+name = "ai-governance"
+type = "concern"
+version = "1.0.0"
+summary = "AI governance for the audit agents and for AI features in the audited system."
