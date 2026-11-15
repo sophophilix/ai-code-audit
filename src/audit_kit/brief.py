@@ -109,14 +109,15 @@ def check_ids(rules_text: str) -> list[str]:
     return list(dict.fromkeys(i for i in found if i != "CHECK-ID"))
 
 
-def scan_table(rows: dict[str, UnitRows], index: ScanIndex) -> str:
+def scan_table(rows: dict[str, UnitRows], index: ScanIndex, path: str) -> str:
     """Render the counts table that `kit verify` compares with the rows below it."""
     out = [
         "| Scan | Status | Rows here | Rows elsewhere in the file |",
         "|---|---|---|---|",
     ]
-    for name in NAMES:
-        status = index.status.get(name, "not run")
+    for source in SOURCES:
+        name = source.name
+        status = index.status_for(source, path)
         out.append(
             f"| {name} | {status} | {len(rows[name].inside)} | {rows[name].elsewhere} |"
         )
@@ -184,16 +185,18 @@ def _context(lines: list[str], unit: Unit) -> list[str]:
     ]
 
 
-def scan_part(rows: dict[str, UnitRows], index: ScanIndex) -> list[str]:
+def scan_part(rows: dict[str, UnitRows], index: ScanIndex, path: str) -> list[str]:
     """Render the brief's scan section: the count table, then each scan's rows."""
     out = [
         "## Scan rows",
         "",
         "Rows for this file from every scan, limited to the unit's lines (rows about "
-        "the whole file have no line). A scan that didn't run is a limitation, never "
-        "a pass.",
+        "the whole file have no line). Only `ran` with 0 rows means the scan looked at "
+        "this file and found nothing. `not run` and `unreadable` are limitations. "
+        "`not covered` means the scan ran but doesn't examine this kind of file, so "
+        "it says nothing about it: never a pass.",
         "",
-        scan_table(rows, index),
+        scan_table(rows, index, path),
         "",
     ]
     for source in SOURCES:
@@ -233,7 +236,7 @@ def build_brief(
     rows = unit_rows(index, unit)
     kind = skill_sections.kind_of(unit)
     rules_text = skill_sections.render(rules)
-    scans = scan_part(rows, index)
+    scans = scan_part(rows, index, unit.path)
     ids = check_ids(rules_text)
     code = _numbered(list(enumerate(lines[unit.start - 1 : unit.end], unit.start)))
     fence = _fence(code)
@@ -284,7 +287,7 @@ def build_brief(
         sections=[f"{s.source}: {s.heading.lstrip('# ')}" for s in rules],
         check_ids=ids,
         scan_rows={name: len(rows[name].inside) for name in NAMES},
-        scan_status={name: str(index.status.get(name, "not run")) for name in NAMES},
+        scan_status={s.name: str(index.status_for(s, unit.path)) for s in SOURCES},
         gates=gates,
     )
     return Brief("\n".join(out), meta)
