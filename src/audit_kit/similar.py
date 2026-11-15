@@ -1,11 +1,12 @@
-"""Near-duplicate named functions across the target's own JavaScript (no AI).
+"""Near-duplicate named functions across the target's own code (no AI).
 
 jscpd finds copied blocks of 50 tokens or more, so a one-line helper copied
 into a second file and changed slightly is invisible to it, and a review that
 reads one file at a time can't see the other copy. This module tokenises each
 named function, compares functions of similar length, and lists pairs whose
-tokens mostly match, with where they differ. Nothing is imported, built or run
-(AGENTS.md rule 2).
+tokens mostly match, with where they differ. JavaScript and Python are read,
+and a function is compared only with others in its own language. Nothing is
+imported, built or run (AGENTS.md rule 2).
 
 A pair is a lead, not a verdict: two small functions can match by coincidence,
 and a copy may be deliberate (Chesterton's Fence).
@@ -19,6 +20,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
 
+from audit_kit import similar_python
+from audit_kit.ecosystems import PY_FILES
 from audit_kit.errors import WorkspaceError
 from audit_kit.inventory import Inventory
 from audit_kit.unused import JS, strip_comments
@@ -41,6 +44,10 @@ TOKEN = re.compile(
     r"""|`(?:\\.|[^`\\])*`|=>|\S"""
 )
 IDENT = re.compile(r"[A-Za-z_$][\w$]*")
+TEST_FILE = re.compile(
+    r"(^|/)(tests?|__tests__|spec)/|[._](test|spec)\.[a-z]+$"
+    r"|(^|/)(test_[^/]*|[^/]*_test|conftest)\.py$"
+)
 KEYWORDS = frozenset(
     [
         "if",
@@ -214,6 +221,19 @@ def functions(path: str, code: str) -> list[Function]:
     return out
 
 
+def python_functions(path: str, code: str) -> list[Function]:
+    """Return the named functions in one Python file that are worth comparing.
+
+    Raises:
+        SyntaxError: If the file isn't valid Python for the kit's interpreter.
+    """
+    return [
+        Function(path, f.name, f.first, f.first, f.last, f.tokens)
+        for f in similar_python.functions(code)
+        if MIN_TOKENS <= len(f.tokens) <= MAX_TOKENS
+    ]
+
+
 def _nested(a: Function, b: Function) -> bool:
     return a.file == b.file and (
         a.first <= b.first <= b.last <= a.last or b.first <= a.first <= a.last <= b.last
@@ -239,8 +259,16 @@ def _differences(a: Function, b: Function) -> list[dict[str, str]]:
     return out[:DIFFERENCES]
 
 
+def _both_tests(a: Function, b: Function) -> bool:
+    return bool(TEST_FILE.search(a.file) and TEST_FILE.search(b.file))
+
+
 def pairs(found: list[Function]) -> list[dict[str, Any]]:
-    """Return near-duplicate pairs, most similar first, at most PER_FUNCTION each."""
+    """Return near-duplicate pairs, most similar first, at most PER_FUNCTION each.
+
+    Two functions that are both in test files are never paired: test cases
+    repeat their setup by design.
+    """
     shingles = [_shingles(f) for f in found]
     postings: dict[tuple[str, ...], list[int]] = defaultdict(list)
     for n, s in enumerate(shingles):
@@ -257,7 +285,7 @@ def pairs(found: list[Function]) -> list[dict[str, Any]]:
     for (a, b), count in shared.items():
         fa, fb = found[a], found[b]
         small, large = sorted((len(fa.tokens), len(fb.tokens)))
-        if small / large < SIMILARITY - 0.1 or _nested(fa, fb):
+        if small / large < SIMILARITY - 0.1 or _nested(fa, fb) or _both_tests(fa, fb):
             continue
         if count < 0.5 * min(len(shingles[a]), len(shingles[b])):
             continue
@@ -286,42 +314,60 @@ def pairs(found: list[Function]) -> list[dict[str, Any]]:
 
 
 def report(ws: Workspace, inv: Inventory, excluded: tuple[str, ...]) -> dict[str, Any]:
-    """Build the near-duplicate report from the target's own JavaScript files."""
+    """Build the near-duplicate report from the target's own code files."""
 
     def kept(path: str) -> bool:
         return not any(
             path == e or path.startswith(e.rstrip("/") + "/") for e in excluded
         )
 
-    found: list[Function] = []
+    javascript: list[Function] = []
+    python: list[Function] = []
     problems: list[str] = []
-    paths = sorted(
-        e.path
-        for e in inv.of("own")
-        if e.kind == "file" and e.path.endswith(JS) and kept(e.path)
-    )
+    own = sorted(e.path for e in inv.of("own") if e.kind == "file" and kept(e.path))
+    paths = [p for p in own if p.endswith((*JS, *PY_FILES))]
     for path in paths:
         try:
-            found += functions(path, ws.read_text(path, limit=MAX_BYTES))
+            code = ws.read_text(path, limit=MAX_BYTES)
+            if path.endswith(PY_FILES):
+                python += python_functions(path, code)
+            else:
+                javascript += functions(path, code)
         except WorkspaceError as exc:
             problems.append(f"not read: {exc}")
-    listed = pairs(found)
+        except SyntaxError as exc:
+            problems.append(f"{path}: not parsed (line {exc.lineno})")
+    # A function is compared only with others in its own language.
+    listed = sorted(
+        pairs(javascript) + pairs(python),
+        key=lambda p: (-p["similarity"], p["first"]["file"], p["first"]["line"]),
+    )
     return {
         "generated_by": "kit scan: near-duplicate named functions (deterministic, no execution)",
         "method": (
-            f"Own {'/'.join(JS)} files, comments removed, tokenised. Each named "
-            f"function of {MIN_TOKENS}-{MAX_TOKENS} tokens is compared, without its "
-            f"name, with functions of similar length that share {SHINGLE}-token "
-            f"runs; a pair is listed when at least {SIMILARITY:.0%} of the tokens "
-            "match in order."
+            f"Own {'/'.join((*JS, *PY_FILES))} files, tokenised with comments "
+            "removed, and for Python without docstrings, decorators or layout. "
+            f"Each named function of {MIN_TOKENS}-{MAX_TOKENS} tokens is compared, "
+            "without its name, with functions in the same language of similar "
+            f"length that share {SHINGLE}-token runs; a pair is listed when at "
+            f"least {SIMILARITY:.0%} of the tokens match in order."
         ),
         "limits": [
             "Inline scripts in HTML and anonymous callbacks aren't compared.",
+            "Python lambdas aren't compared.",
+            "Two functions that are both in test files aren't paired: test cases "
+            "repeat their setup by design.",
             "Functions longer than the maximum are left to jscpd.",
+            f"A function is listed in at most {PER_FUNCTION} pairs, the closest.",
             "A pair is a lead: small functions can match by coincidence, and a "
             "copy may be deliberate.",
         ],
-        "counts": {"files": len(paths), "functions": len(found), "pairs": len(listed)},
+        "counts": {
+            "files": len(paths),
+            "functions": len(javascript) + len(python),
+            "python_functions": len(python),
+            "pairs": len(listed),
+        },
         "problems": problems,
         "pairs": listed,
     }

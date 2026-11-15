@@ -82,7 +82,7 @@ SOURCES = (
         "similar",
         PurePosixPath(".audit/scans/similar.json"),
         "the kit's near-duplicate function check",
-        (".js", ".cjs", ".mjs"),
+        (".js", ".cjs", ".mjs", *PY_FILES),
     ),
     Source(
         "suppressions",

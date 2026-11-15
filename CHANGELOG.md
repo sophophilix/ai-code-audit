@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.24.0 – 2026-11-15: Near-duplicate Python functions
+The near-duplicate check read JavaScript only, so a Python file showed
+`not covered` and a copied helper in a second file stayed invisible to a
+review that reads one file at a time.
+- **`scans/similar.json` covers Python.** Each `.py` file is parsed with `ast`
+  and split into tokens with `tokenize`, never imported or run. Every named
+  function, methods and nested functions included, is compared without its
+  name, docstring, comments, decorators or layout.
+- A function is compared only with others in its own language.
+- **Two functions that are both in test files are no longer paired**, in either
+  language: test cases repeat their setup by design. A test paired with code
+  outside the tests is still listed.
+- A Python file that doesn't parse is listed under `problems`.
+- On the pilot target: 2,763 functions, 85 pairs, in under a second. Nobody has
+  checked how many of the 85 a reviewer would call a real duplicate.
+
 ## 0.23.0 – 2026-11-15: Secret values stay out
 From the same evaluation pilot. gitleaks ran and missed a planted token passed
 as a header value, and the file reviewer copied that token into its record
