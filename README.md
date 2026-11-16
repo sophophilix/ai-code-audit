@@ -36,6 +36,10 @@ It audits JavaScript and TypeScript (Node.js, browser) and Python targets.
   the records of units that haven't changed. `kit store` puts every record in a
   DuckDB file that later agents read with `kit query`, and `kit cost` totals
   tokens, cost and time per stage and model.
+- **No file-review finding is dropped on the way to the report.** `kit register`
+  lists every file-record and trace finding beside the specialist finding that
+  reports it. `kit verify` fails when a Medium or higher that no specialist
+  reported is missing from the report and the backlog.
 - **Interruptions don't lose work.** Agents save after every small work item;
   a new session resumes from a short plan and capsule, not from scratch
   (`core/skills/checkpointing`). Cost and usage via OpenTelemetry: `docs/observability.md`.

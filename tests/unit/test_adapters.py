@@ -234,6 +234,7 @@ def test_publish_uses_templates_and_skips_missing_tools(
     (world["ws"] / ".audit/07-final-report.md").write_text("# Report\n")
     (world["ws"] / ".audit/09-briefing.slides.md").write_text("# Deck\n")
     (world["projects"] / "demo/templates/report.docx").write_bytes(b"docx")
+    (world["ws"] / ".audit/findings-register.md").write_text("# Register\n")
     outputs.publish(s, str(world["ws"]))
     assert "pandoc not installed" in capsys.readouterr().out
     fake_tools(world["bin"], ("pandoc", "marp"))
@@ -243,8 +244,13 @@ def test_publish_uses_templates_and_skips_missing_tools(
         a.startswith("--reference-doc=") and a.endswith("report.docx")
         for a in pandoc[0]
     )
+    assert pandoc[1][1:4] == [
+        ".audit/findings-register.md",
+        "-o",
+        ".audit/findings-register.docx",
+    ]
     assert not any(
-        a.startswith("--reference-doc") for a in pandoc[1]
+        a.startswith("--reference-doc") for a in pandoc[2]
     )  # no deck template
     assert any(c[0] == "marp" for c in calls(world["log"]))
 

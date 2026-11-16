@@ -79,7 +79,7 @@ Don't paste in context of your own, earlier outputs or opinions.
 | 2 | engineer | same | `03-engineering.md` |
 | 2 | security | same | `04-security.md` |
 | 2 | accessibility | same (and `scans/axe/` if present) | `05-accessibility.md` |
-| 3 | verifier | `project.md`, `detected.md`, `01`–`05`, `files/`, `traces/`, `scans/` (**fresh context**) | `06-verification.md` |
+| 3 | verifier | `project.md`, `detected.md`, `01`–`05`, `findings-register.md`, `files/`, `traces/`, `scans/` (**fresh context**) | `06-verification.md` |
 | 4 | lead-reviewer | everything in `.audit/` | `07-final-report.md`, `08-backlog.csv`, `09-briefing.slides.md`, `adr/` |
 
 If your harness can't start agents, hand the tech lead the exact prompt for
@@ -159,6 +159,13 @@ every unit, then 1b, then discovery.
 Start the four specialists in parallel if your harness allows, each in its own
 context. Otherwise run them one after another in new sessions. The order
 doesn't matter.
+
+When the file review ran and every Stage 2 pass has passed its gate checks, ask
+the tech lead to run `kit register <workspace>`. It writes
+`.audit/findings-register.md`: every file-record and trace finding, beside the
+specialist finding that reports it. The verifier and the lead reviewer work
+from it. Ask for it again whenever a `01` to `05` output changes afterwards.
+`kit verify` (OUT-R16) fails on a register that is out of date.
 
 ### Stage 3
 Each verifier pass starts in a fresh context. Before starting, pick the

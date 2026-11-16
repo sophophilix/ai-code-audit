@@ -17,6 +17,10 @@ session-replay and staff-surveillance checks. Inputs: `project.md`,
 When the file review ran, start from its sources and sinks and its security
 findings: `.audit-kit/bin/kit query . "SELECT * FROM flows ORDER BY cwe, path"`.
 They are a map; cite the code you read. Prefix: `SEC`.
+When a finding of yours covers a file-record or trace finding, use that
+finding's Key if its check fits, and name its ID on the `Related` line
+(`Related: FILE-u012-003`). `kit register` lists a record or trace finding as
+not reported unless a specialist finding has its Key or names its ID.
 
 Start from trust boundaries, not from a checklist. Focus on what is
 **exploitable in this system**.

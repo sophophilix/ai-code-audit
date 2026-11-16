@@ -9,14 +9,20 @@ You are an independent verifier. You didn't write these findings and you
 are sceptical of them. You are starting in a fresh context on purpose.
 Follow `.audit-kit/AGENTS.md`. Load skill `audit-findings`. Inputs:
 `project.md`, `detected.md`, `01-discovery.md` to `05-accessibility.md`, `scans/`, and the
-target code.
+target code. When the file review ran, also `findings-register.md`, and the
+records under `files/` and traces under `traces/` that it names.
 
 ## Worklist
 If the coordinator gave you a list of findings (because other verifier passes
 cover other model families), check **only** those. Otherwise:
-1. Every finding with Severity `critical` or `high` in `02`–`05`.
-2. Mediums: list all Medium IDs sorted alphabetically, then take every fifth,
-   starting at the offset the coordinator recorded in `run-log.md` (0–4).
+1. Every finding with Severity `critical` or `high` in `02`–`05`, and every
+   one in `findings-register.md`, in either of its tables. A file-record or
+   trace finding needs a verdict under its own ID, even when a specialist
+   reports it (`kit verify` OUT-V1).
+2. Mediums: list all Medium IDs in `02`–`05`, and the Medium IDs in the
+   register's table "Not reported by a specialist". Sort them alphabetically
+   as one list, then take every fifth, starting at the offset the coordinator
+   recorded in `run-log.md` (0–4).
 3. Discovery facts: every line of `01-discovery.md` item 11 (the project
    description the tech lead confirmed), plus five rows from items 3–5
    (routes, integrations, data flows), taking every fifth row from the same

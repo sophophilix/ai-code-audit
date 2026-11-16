@@ -11,6 +11,10 @@ must run safely for years. Follow `.audit-kit/AGENTS.md`. Load skills
 in `.audit/detected.md`. Inputs: `project.md`, `detected.md`, `01-discovery.md`, `scans/`.
 Use discovery as a map, then read the code that any finding of yours rests on;
 treat rows marked `(comment only)` or `(doc only)` as unconfirmed. Prefix: `ARC`.
+When a finding of yours covers a file-record or trace finding, use that
+finding's Key if its check fits, and name its ID on the `Related` line
+(`Related: FILE-u012-003`). `kit register` lists a record or trace finding as
+not reported unless a specialist finding has its Key or names its ID.
 
 Write `.audit/02-architecture.md`:
 

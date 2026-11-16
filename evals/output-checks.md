@@ -60,6 +60,8 @@ every record, so a record reused from an earlier audit is checked against this o
 | OUT-R10 | The method section states which findings a person checked | yes (presence) |
 | OUT-R13 | When the target has a user interface, the report has a "Still to check by hand" section listing the manual checks | yes (presence) / person (complete) |
 | OUT-R12 | Every package named in a finding's `Packages` field was looked up, and none is missing from npm or deprecated (skipped, with a note, when lookups are denied) | yes |
+| OUT-R16 | When there are file-record or trace findings, `findings-register.md` matches the files as they are now (`kit register` writes it), and the report names it | yes |
+| OUT-R17 | Every file-record or trace finding rated Medium or higher that no specialist finding reports, by Key or by ID, is named in the report or the backlog | yes (named) / person (handled well) |
 | OUT-R11 | The report has a "Not examined" section built from `scans/coverage.json` and `blindspots.json` | yes (presence) / person (complete) |
 
 ## Backlog (`08-backlog.csv`)

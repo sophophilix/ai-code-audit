@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.25.0 – 2026-11-16: File-review findings reach the report
+From the first full evaluation run. The file reviewers and tracers wrote 621
+findings. The specialists read them as a map and reported 28, by Key or by ID.
+Of the 82 others rated Medium or higher, the final report and the backlog named
+17. Four of the 19 planted issues were found by the file review and then
+appeared nowhere in the report.
+- **`kit register`** writes `.audit/findings-register.md`: every file-record
+  and trace finding, beside the specialist finding that reports it. A
+  specialist finding reports one when it has the same Key or names the ID.
+  Two findings on the same lines under different Keys don't match, because a
+  finding wrongly called reported is lost. The findings that no specialist
+  reports are listed first. The same files always give the same text.
+- **OUT-R16** in `kit verify`: the register matches the files as they are now,
+  and the report names it. A specialist output that changes after the register
+  was written fails the check until `kit register` runs again.
+- **OUT-R17**: every file-record or trace finding rated Medium or higher that
+  no specialist reports is named in the report or the backlog.
+- **The lead reviewer** works through the register's unreported findings. It
+  merges or reports each Medium and higher, and adds an appendix that names
+  the register and counts the Low and info findings left in it.
+- **The verifier's lists include the register.** Every Critical and High
+  file-record or trace finding was already required to have a verdict
+  (OUT-V1), but the verifier's definition named only `02` to `05`. Its Medium
+  sample now also draws on the Mediums that no specialist reported.
+- **The specialists** are told to use a record's Key when its check fits and
+  to name its ID on the `Related` line.
+- `kit publish` writes `findings-register.docx` beside the report.
+- Low and info findings that no specialist reports stay in the register only.
+  No verifier and no person checks them, and the register says so.
+- No audit has run with the register yet. Whether the lead reviewer handles
+  80 unreported Mediums well, and what that costs, isn't measured.
+
 ## 0.24.1 – 2026-11-15: A check for a hard-coded credential in Python
 - **`PY-HARDCODED-SECRET`** in the Python catalogue. No check covered a planted
   token, so the reviewer filed it under other Keys, `PYAPP-CONFIG` among them. The row points at `scans/secrets.json` and Ruff's S105 to S107.

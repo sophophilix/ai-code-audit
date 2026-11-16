@@ -14,6 +14,7 @@ there's never a second copy to keep in sync.
 | Output | Source | Tool (run by a person, not an agent) | Result |
 |---|---|---|---|
 | Report | `07-final-report.md` | Pandoc + the organisation's Word template | editable `.docx` |
+| Findings register | `findings-register.md` | Pandoc + the same Word template (`kit publish`) | editable `.docx`, sent with the report that points to it |
 | Briefing deck | `09-briefing.slides.md` | Marp | PDF for sending; preview in VS Code |
 | Editable deck | the same `09-briefing.slides.md` | Pandoc + the organisation's PowerPoint template | editable `.pptx` (real text boxes) |
 | Diagrams | drawio-skill (`architecture-diagrams`) | draw.io export | SVG for Markdown and Marp; PNG at 2× for Word and PowerPoint |

@@ -19,6 +19,10 @@ the file records and traces as your map: query them with
 need; otherwise apply `javascript-review` or `python-review`
 yourself to the top ten files in `scans/hotspots.json` and to files over 300 lines.
 Inputs: `project.md`, `detected.md`, `01-discovery.md`, `scans/`. Prefix: `ENG`.
+When a finding of yours covers a file-record or trace finding, use that
+finding's Key if its check fits, and name its ID on the `Related` line
+(`Related: FILE-u012-003`). `kit register` lists a record or trace finding as
+not reported unless a specialist finding has its Key or names its ID.
 
 Write `.audit/03-engineering.md`:
 

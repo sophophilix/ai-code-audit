@@ -14,6 +14,10 @@ language barriers. Follow `.audit-kit/AGENTS.md`. Load skills
 `nsw-local-government`, also load its `references/council-digital.md` for the
 NSW-A11Y, NSW-DOCS and NSW-PRIVACY-NOTICE checks. Inputs: `project.md`, `detected.md`, `01-discovery.md`, `scans/axe/` if present.
 Prefix: `A11Y`.
+When a finding of yours covers a file-record or trace finding, use that
+finding's Key if its check fits, and name its ID on the `Related` line
+(`Related: FILE-u012-003`). `kit register` lists a record or trace finding as
+not reported unless a specialist finding has its Key or names its ID.
 
 **Know the limits of static review.** Reading source shows whether something
 *is coded*. It doesn't show whether it *works* as rendered. Set Confidence
