@@ -20,10 +20,10 @@ from pathlib import PurePosixPath
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from audit_kit import brief, leaks, search
+from audit_kit import brief, leaks, register, search
 from audit_kit.detection import loaded_profiles
 from audit_kit.errors import OutsideWorkspaceError, WorkspaceError
-from audit_kit.findings import HEADING, ID_RE, Finding, parse_findings
+from audit_kit.findings import HEADING, ID_RE, LOCATION, Finding, parse_findings
 from audit_kit.lookups import OUTPUT as LOOKUPS
 from audit_kit.lookups import recommended_packages
 from audit_kit.runner import CommandError, run
@@ -32,7 +32,6 @@ from audit_kit.units import Unit
 from audit_kit.units import parse as parse_units
 from audit_kit.workspace import Workspace
 
-LOCATION = re.compile(r"^([^\s:]+?)(?::(\d+)(?:-(\d+))?)?(?:\s|$)")
 KEY_OK = re.compile(r"^(?:X-[a-z0-9-]+|[A-Z][A-Z0-9.]*(?:-[A-Z0-9.]+)*):\S")
 VERDICT_LINE = re.compile(r"\bverdict:\s*rejected\b", re.I)
 REQUIRED = ("Key", "Category", "Severity", "Confidence", "Location", "Evidence")
@@ -68,6 +67,8 @@ RECORD_SECTIONS = (
     "Limitations",
 )
 PILOT = ".audit/work/files/pilot.txt"
+# The send-back names this many of the findings a report left out.
+REGISTER_IDS_SHOWN = 20
 # One failed line for each output that holds a secret value, up to this many.
 SECRET_FILES_SHOWN = 10
 
@@ -457,14 +458,16 @@ def check(ws: Workspace) -> Report:
         return report
 
     findings: dict[str, Finding] = {}
-    names = sorted(p.name for p in audit.glob("0[1-5]-*.md"))
+    stage: list[Finding] = []
+    names = sorted(p.name for p in audit.glob(register.STAGE_FILES))
     if not names:
         report.skip("OUT-F*", "no findings files (01-05) yet")
     searcher = Searcher(ws)
     for name in names:
         text = ws.read_text(f".audit/{name}", limit=50_000_000)
-        for f in _check_findings_file(ws, name, text, report, searcher):
-            findings[f.id] = f
+        blocks = _check_findings_file(ws, name, text, report, searcher)
+        stage += blocks
+        findings.update((f.id, f) for f in blocks)
         if name == "01-discovery.md":
             _check_discovery_tables(ws, text, report, searcher)
 
@@ -482,8 +485,8 @@ def check(ws: Workspace) -> Report:
 
     # File records and traces hold findings a report may cite (ADR 0002 D6), so
     # they join before the report's IDs are checked.
-    for f in _check_file_review(ws, report, searcher):
-        findings[f.id] = f
+    stored = _check_file_review(ws, report, searcher)
+    findings.update((f.id, f) for f in stored)
 
     high = sorted(
         i
@@ -553,6 +556,7 @@ def check(ws: Workspace) -> Report:
         )
 
     _check_secret_values(ws, report)
+    _check_register(ws, report, stored, stage)
     _check_recommended(ws, report)
     _check_backlog(ws, report)
     _check_diagrams(ws, report)
@@ -869,6 +873,56 @@ def _check_secret_values(ws: Workspace, report: Report) -> None:
                 else ""
             ),
         )
+
+
+def _check_register(
+    ws: Workspace, report: Report, stored: list[Finding], stage: list[Finding]
+) -> None:
+    """OUT-R16, OUT-R17: no file-record or trace finding is dropped on the way.
+
+    The register has to match the files as they are now, and the report has to
+    name it. Each finding rated Medium or higher that no specialist reports has
+    to be named in the report or the backlog.
+    """
+    if not stored:
+        report.skip("OUT-R16", "no file-record or trace findings")
+        return
+    name = register.OUTPUT.name
+    has_report = ws.is_file(".audit/07-final-report.md")
+    if not ws.is_file(register.OUTPUT):
+        if has_report:
+            report.add("OUT-R16", False, f"no {name}; run kit register")
+        else:
+            report.skip("OUT-R16", f"no {name} yet (kit register, after Stage 2)")
+        return
+    found = register.entries(stored, stage)
+    left = register.unreported(found)
+    current = ws.read_text(register.OUTPUT, 50_000_000) == register.render(found)
+    report.add(
+        "OUT-R16",
+        current,
+        f"{name}: {len(found)} findings, {len(left)} not reported by a specialist"
+        + ("" if current else "; out of date, run kit register again"),
+    )
+    if not has_report:
+        return
+    text = ws.read_text(".audit/07-final-report.md", limit=50_000_000)
+    named = name in text
+    report.add(
+        "OUT-R16", named, f"report {'names' if named else 'does not name'} {name}"
+    )
+    if ws.is_file(".audit/08-backlog.csv"):
+        text += ws.read_text(".audit/08-backlog.csv", limit=50_000_000)
+    mentioned = set(re.findall(ID_RE, text))
+    must = [e.id for e in left if e.severity in register.ACCOUNTED]
+    missing = [i for i in must if i not in mentioned]
+    report.add(
+        "OUT-R17",
+        not missing,
+        "medium and above not reported by a specialist: "
+        f"{len(must) - len(missing)}/{len(must)} named in the report or backlog"
+        + (f"; missing {missing[:REGISTER_IDS_SHOWN]}" if missing else ""),
+    )
 
 
 def _check_diagrams(ws: Workspace, report: Report) -> None:

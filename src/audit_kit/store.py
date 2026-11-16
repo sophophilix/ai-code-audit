@@ -26,12 +26,11 @@ from pydantic import ValidationError
 from audit_kit import file_record, gates, ledger
 from audit_kit.console import ok, say
 from audit_kit.errors import AuditKitError, WorkspaceError
-from audit_kit.findings import parse_findings
+from audit_kit.findings import LOCATION, parse_findings
 from audit_kit.settings import KitSettings
 from audit_kit.units import OUTPUT as UNITS
 from audit_kit.units import Unit
 from audit_kit.units import parse as parse_units
-from audit_kit.verification import LOCATION
 from audit_kit.workspace import Workspace
 from audit_kit.workspaces import locate
 

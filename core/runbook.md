@@ -13,6 +13,7 @@ this file by hand: one session per agent, in order.
           ◆ CHECKPOINT 1  tech lead reviews facts, answers questions, confirms scope
  Stage 2  Architect | Engineer | Security | Accessibility   (parallel, isolated)
                                                     → 02- 03- 04- 05-*.md, adr/
+          kit register (if the file review ran)     → .audit/findings-register.md
  Stage 3  Verifier (fresh context, ideally a different model family)
                                                     → .audit/06-verification.md
  Stage 4  Lead reviewer                             → 07-final-report.md, 08-backlog.csv, 09-briefing.slides.md
@@ -40,6 +41,8 @@ clone makes a mistake harmless.
     run-state.md     current status of every stage and pass; what a new session resumes from
     work/            per-pass LOCK, plan.md and capsule.md (skill: checkpointing)
     findings.duckdb  the findings store (`kit store`; query with `kit query`)
+    findings-register.md  each file-record and trace finding, and the specialist
+                     finding that reports it (`kit register`)
     01-discovery.md … 09-briefing.slides.md
     adr/
     diagrams/        architect's Diagram IR (.ir.json) and policy.yml; the tech lead builds .drawio files
@@ -127,6 +130,7 @@ pinned versions of these against the clone and saves the output in
 | `files/<path>[#<part>].json`, `.md` | `kit review`: the pass's JSON once it passes the record checks, and the Markdown rendered from it. A record whose unit text, kit version, skill sections and scan rows haven't changed is kept, or copied from an earlier audit with `--reuse-from` and checked again | tracer, discovery, stage 2 and 3 agents |
 | `work/files/status.tsv`, `passes.jsonl` | `kit review`: each unit's status, and each attempt's turns, tokens by type, API-equivalent cost and seconds | coordinator, `kit cost` |
 | `findings.duckdb` | `kit store`, after the passes and again after the traces: units, findings, edges, facts, flows, gates, repository gates and passes, rebuilt from the files above. Never committed; rebuild it any time | every agent from 1b on, through `kit query` |
+| `findings-register.md` | `kit register`, after Stage 2 and again when a `01` to `05` output changes: every file-record and trace finding, beside the specialist finding that has its Key or names its ID. Findings that no specialist reports are listed first | verifier, lead reviewer, `kit verify` (OUT-R16, OUT-R17) |
 | `cost.md` | `kit cost`: totals by stage and model | lead reviewer |
 
 Agents read the store with `.audit-kit/bin/kit query . "<SQL>"` instead of
@@ -166,6 +170,12 @@ The coordinator waits for that line, and it has to come from the tech lead.
 - `01-discovery.md` is a map, not evidence. Every finding cites code the
   specialist read itself; comments and documents are claims (`AGENTS.md` rule 4).
   Stage 3 checks a sample of discovery's facts against the code.
+- A specialist uses the file records and traces as a map, so most of their
+  findings are in no specialist output. After Stage 2 the tech lead runs
+  `kit register`. It lists every file-record and trace finding and says which
+  specialist finding reports it. The lead reviewer accounts for each one rated
+  Medium or higher that no specialist reported, and the report points to the
+  register for the rest.
 
 ## Multiple passes (several models on one agent)
 
@@ -190,6 +200,9 @@ different providers or models, optionally limited to some profiles.
   the one that wrote it.
 - Checks every Critical and High finding, plus a fixed sample of Mediums:
   sort Medium IDs, take every fifth starting at the offset recorded in `run-log.md`.
+  Both lists include the file-record and trace findings in
+  `findings-register.md`: every Critical and High, and the Mediums that no
+  specialist reported.
 
 ## Checkpoint 2 (after the lead reviewer)
 

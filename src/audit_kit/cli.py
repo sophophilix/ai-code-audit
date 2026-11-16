@@ -23,6 +23,7 @@ from audit_kit import (
     outputs,
     packs,
     projects,
+    register,
     review,
     sandbox,
     scans,
@@ -142,6 +143,11 @@ def _parser() -> argparse.ArgumentParser:
     )
     r.add_argument("--dry-run", action="store_true", help="list what would run")
     add("store", "rebuild .audit/findings.duckdb from the records, traces and passes")
+    add(
+        "register",
+        "list every file-record and trace finding with the specialist finding "
+        "that reports it (writes .audit/findings-register.md)",
+    )
     q = add("query", "run one read-only SQL query on the findings store")
     q.add_argument("sql")
     q.add_argument("--format", choices=("table", "csv", "json"), default="table")
@@ -403,6 +409,7 @@ HANDLERS: dict[str, Handler] = {
     "units": _done(lambda a, s: scans.refresh_units(s, a.workspace)),
     "review": _review,
     "store": _done(lambda a, s: store.store(s, a.workspace)),
+    "register": _done(lambda a, s: register.register(s, a.workspace)),
     "query": _done(lambda a, s: store.run_query(s, a.workspace, a.sql, a.format)),
     "cost": _done(lambda a, s: store.cost(s, a.workspace)),
     "sandbox": _done(lambda a, s: sandbox.sandbox(s, a.workspace, a.job, a.file)),

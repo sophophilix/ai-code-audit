@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from audit_kit import search, verification
+from audit_kit import register, search, verification
 from audit_kit.runner import CommandError, Result
 from audit_kit.search import first_match, main
 from audit_kit.verification import Status, check, rejected_ids
@@ -365,4 +365,87 @@ def test_a_report_may_cite_a_trace_finding(ws: Workspace) -> None:
         "07-final-report.md",
         "SEC-001 and TRACE-t01-001 are one cause.\n## Not examined\nNone.\n",
     )
-    assert not [line for line in failed(ws) if "OUT-R1" in line]
+    assert not [line for line in failed(ws) if " OUT-R1 " in line]
+
+
+def lines(ws: Workspace, check_id: str) -> list[str]:
+    return [r.line() for r in check(ws).results if r.check == check_id]
+
+
+def trace(ws: Workspace, *blocks: str) -> None:
+    write(
+        ws,
+        "traces/login.md",
+        HEADER.replace("security", "tracer") + "## Findings\n" + "".join(blocks),
+    )
+
+
+def write_register(ws: Workspace) -> None:
+    ws.write_text(register.OUTPUT, register.render(register.build(ws)))
+
+
+def test_the_register_checks_wait_for_findings_and_for_the_register(
+    ws: Workspace,
+) -> None:
+    assert lines(ws, "OUT-R16") == ["SKIP  OUT-R16 no file-record or trace findings"]
+    trace(ws, finding("TRACE-t01-001", "X-cross-file:app.js", "medium"))
+    (ws.root / ".audit/07-final-report.md").unlink()
+    assert lines(ws, "OUT-R16") == [
+        "SKIP  OUT-R16 no findings-register.md yet (kit register, after Stage 2)"
+    ]
+    assert lines(ws, "OUT-R17") == []
+
+
+def test_a_report_with_no_register_fails(ws: Workspace) -> None:
+    trace(ws, finding("TRACE-t01-001", "X-cross-file:app.js", "medium"))
+    assert lines(ws, "OUT-R16") == [
+        "FAIL  OUT-R16 no findings-register.md; run kit register"
+    ]
+
+
+def test_a_register_older_than_a_specialist_output_fails(ws: Workspace) -> None:
+    trace(ws, finding("TRACE-t01-001", "X-foo:app.js", "low"))
+    (ws.root / ".audit/07-final-report.md").unlink()
+    write_register(ws)
+    assert lines(ws, "OUT-R16") == [
+        "PASS  OUT-R16 findings-register.md: 1 findings, 0 not reported by a specialist"
+    ]
+    write(ws, "04-security.md", HEADER + finding("SEC-001", "EXP-TRUST-PROXY:app.js"))
+    assert lines(ws, "OUT-R16") == [
+        "FAIL  OUT-R16 findings-register.md: 1 findings, 1 not reported by a "
+        "specialist; out of date, run kit register again"
+    ]
+
+
+def test_the_report_has_to_name_the_register(ws: Workspace) -> None:
+    trace(ws, finding("TRACE-t01-001", "X-foo:app.js", "low"))
+    write_register(ws)
+    assert "FAIL  OUT-R16 report does not name findings-register.md" in lines(
+        ws, "OUT-R16"
+    )
+    write(ws, "07-final-report.md", "## Not examined\nSee findings-register.md.\n")
+    assert [line[:4] for line in lines(ws, "OUT-R16")] == ["PASS", "PASS"]
+
+
+def test_a_medium_no_specialist_reports_has_to_be_named(ws: Workspace) -> None:
+    trace(
+        ws,
+        finding("TRACE-t01-001", "X-cross-file:app.js", "medium"),
+        finding("TRACE-t01-002", "X-other:app.js", "high"),
+        finding("TRACE-t01-003", "X-small:app.js", "low"),
+        finding("TRACE-t01-004", "X-foo:app.js", "medium"),  # SEC-002 has this Key
+    )
+    write_register(ws)
+    assert lines(ws, "OUT-R17") == [
+        "FAIL  OUT-R17 medium and above not reported by a specialist: 0/2 named in "
+        "the report or backlog; missing ['TRACE-t01-002', 'TRACE-t01-001']"
+    ]
+    write(ws, "07-final-report.md", "## Not examined\nTRACE-t01-002 holds.\n")
+    backlog = ws.root / ".audit/08-backlog.csv"
+    backlog.write_text(
+        backlog.read_text() + '"Task","TRACE-t01-001 x","d","a","3","t"\n'
+    )
+    assert lines(ws, "OUT-R17") == [
+        "PASS  OUT-R17 medium and above not reported by a specialist: 2/2 named in "
+        "the report or backlog"
+    ]

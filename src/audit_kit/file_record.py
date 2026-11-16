@@ -18,11 +18,11 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from audit_kit.brief import BriefMeta
 from audit_kit.errors import AuditKitError, WorkspaceError
+from audit_kit.findings import LOCATION
 from audit_kit.gates import Gate, render_table
 from audit_kit.units import Unit
 from audit_kit.verification import (
     KEY_OK,
-    LOCATION,
     Searcher,
     excerpt_problem,
     location_exists,

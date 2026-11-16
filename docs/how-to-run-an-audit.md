@@ -245,6 +245,7 @@ What happens:
 | 1 Discovery | Wait |
 | ◆ Checkpoint 1 | Read `.audit/01-discovery.md`. Answer the open questions in `project.md`, fix wrong assumptions, then tell the coordinator: "Checkpoint 1 passed – <your name>" |
 | 2 Specialists | Run any passes it hands you for other tools (Codex, Gemini CLI) in a new terminal, then say "pass <label> finished" |
+| After stage 2 (if the file review ran) | Run `kit register "$WS"` when asked. It writes `.audit/findings-register.md`, which lists every file-record and trace finding and the specialist finding that reports it. Run it again if a specialist output changes later |
 | Critical alert | Tell the security owner **today** |
 | 3 Verifier | Wait (or run the other-provider verifier pass it hands you) |
 | 4 Lead reviewer | Wait |

@@ -9,6 +9,7 @@ from pathlib import Path
 from audit_kit import diagram_style
 from audit_kit.console import ok, skip, warn
 from audit_kit.errors import AuditKitError
+from audit_kit.register import OUTPUT as REGISTER
 from audit_kit.runner import LONG, have, run
 from audit_kit.settings import KitSettings
 from audit_kit.workspace import Workspace
@@ -106,6 +107,10 @@ def publish(s: KitSettings, given: str) -> None:
             ".audit/07-final-report.md", ".audit/07-final-report.docx", "report.docx"
         )
         ok("07-final-report.docx")
+        # The report points at the register, so the two are sent together.
+        if loc.ws.is_file(REGISTER):
+            pandoc(str(REGISTER), ".audit/findings-register.docx", "report.docx")
+            ok("findings-register.docx")
     if not loc.ws.is_file(".audit/09-briefing.slides.md"):
         skip("no 09-briefing.slides.md yet")
         return

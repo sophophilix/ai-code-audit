@@ -22,6 +22,21 @@ rather than reading every record. The tables are `units`, `findings`, `edges`,
   listed in an appendix with the reason. Downgraded findings take the new severity.
 - Findings the verifier didn't check keep their severity, marked `Unverified`.
 - Merge duplicates and keep every source ID (`SEC-004 / ENG-011`).
+- **File-record and trace findings.** `findings-register.md`, which
+  `kit register` writes, lists every finding the file reviewers and tracers
+  wrote, beside the specialist finding that reports it. Work through its table
+  "Not reported by a specialist". No report holds these findings yet.
+  - Critical, High and Medium: read the record or trace. If the finding has the
+    same root cause as one you already report, merge it and keep its ID
+    (`SEC-004 / FILE-u012-003`). Otherwise report it under its own ID, marked
+    `Unverified` unless the verifier gave it a verdict. Name each one in the
+    report or the backlog: `kit verify` (OUT-R17) fails on any you leave out.
+    They count in the report's totals by severity.
+  - Low and info: don't copy them into the report. Report the ones you judge
+    worth acting on, and give the count of the rest in item 18.
+
+  Don't write that the specialists carried the important ones forward. The
+  register says which ones they reported.
 - **Multiple passes:** match findings across passes by Key. Report an
   agreement table per agent: found by all passes / found by only one (which
   one) / the same Key with different severities. Findings from a single pass
@@ -99,6 +114,13 @@ Rules for the whole report:
     verification coverage, false-positive rates, **what a human checked**, and
     a statement that AI agents produced the analysis and humans verified it as recorded.
 17. **Appendix: rejected findings**, with the verifier's reason.
+18. **Appendix: file-record and trace findings** (name `findings-register.md`
+    in this section; `kit verify` OUT-R16 checks the report names it): the
+    counts table from the register, and a table of the Medium and higher
+    findings that no specialist reported, with ID, issue, severity, location
+    and the verifier's verdict or `Unverified`. Then say how many Low and info
+    findings are in the register only, and that no verifier and no person has
+    checked them.
 
 ## 3. `.audit/08-backlog.csv` (Azure DevOps Boards import)
 Columns, in this order:
@@ -109,6 +131,9 @@ Columns, in this order:
 - Acceptance Criteria: testable. Say how someone would prove it's fixed.
 - Priority: 1 = critical, 2 = high, 3 = medium, 4 = low. Don't include info findings.
 - Tags: `audit; <severity>; phase-<n>; <category>; key:<Key>` (semicolon-separated).
+- A Medium or higher finding from `findings-register.md` that no specialist
+  reported gets its own row, or is named in the Description of the row it was
+  merged into.
 - Quote every field. Escape double quotes by doubling them.
 
 ## 4. `.audit/09-briefing.slides.md`
