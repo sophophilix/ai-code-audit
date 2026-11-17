@@ -118,9 +118,10 @@ Rules for the whole report:
     in this section; `kit verify` OUT-R16 checks the report names it): the
     counts table from the register, and a table of the Medium and higher
     findings that no specialist reported, with ID, issue, severity, location
-    and the verifier's verdict or `Unverified`. Then say how many Low and info
-    findings are in the register only, and that no verifier and no person has
-    checked them.
+    and the verifier's verdict or `Unverified`. Then copy the register's table
+    "Low and info findings not reported, by check" as it is, say how many
+    findings it counts, and say that they are in the register only and that no
+    verifier and no person has checked them.
 
 ## 3. `.audit/08-backlog.csv` (Azure DevOps Boards import)
 Columns, in this order:

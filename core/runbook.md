@@ -130,7 +130,7 @@ pinned versions of these against the clone and saves the output in
 | `files/<path>[#<part>].json`, `.md` | `kit review`: the pass's JSON once it passes the record checks, and the Markdown rendered from it. A record whose unit text, kit version, skill sections and scan rows haven't changed is kept, or copied from an earlier audit with `--reuse-from` and checked again | tracer, discovery, stage 2 and 3 agents |
 | `work/files/status.tsv`, `passes.jsonl` | `kit review`: each unit's status, and each attempt's turns, tokens by type, API-equivalent cost and seconds | coordinator, `kit cost` |
 | `findings.duckdb` | `kit store`, after the passes and again after the traces: units, findings, edges, facts, flows, gates, repository gates and passes, rebuilt from the files above. Never committed; rebuild it any time | every agent from 1b on, through `kit query` |
-| `findings-register.md` | `kit register`, after Stage 2 and again when a `01` to `05` output changes: every file-record and trace finding, beside the specialist finding that has its Key or names its ID. Findings that no specialist reports are listed first | verifier, lead reviewer, `kit verify` (OUT-R16, OUT-R17) |
+| `findings-register.md` | `kit register`, after Stage 2 and again when a `01` to `05` output changes: every file-record and trace finding, beside the specialist finding that has its Key or names its ID. Findings that no specialist reports are listed first, and those below Medium are also counted by check | verifier, lead reviewer, `kit verify` (OUT-R16, OUT-R17) |
 | `cost.md` | `kit cost`: totals by stage and model | lead reviewer |
 
 Agents read the store with `.audit-kit/bin/kit query . "<SQL>"` instead of

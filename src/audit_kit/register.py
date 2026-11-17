@@ -33,6 +33,8 @@ STAGE_BYTES = 50_000_000
 SEVERITIES = ("critical", "high", "medium", "low", "info")
 # The final report accounts for each of these by ID (OUT-R17).
 ACCOUNTED = frozenset({"critical", "high", "medium"})
+# The row for findings whose check is not in a catalogue.
+NO_CHECK = "No catalogue check (`X-`)"
 STORE_ID = re.compile(r"\b(?:FILE|TRACE)-[a-z0-9]+-\d{3}\b")
 
 
@@ -168,6 +170,32 @@ def _counts(found: list[Entry]) -> list[str]:
     return out
 
 
+def _by_check(left: list[Entry]) -> list[str]:
+    """Count the unreported findings below Medium by check, most common first.
+
+    A check the reviewer made up (`X-...`) names one finding, so those share a row.
+    """
+    minor = [e for e in left if e.severity not in ACCOUNTED]
+    if not minor:
+        return ["None."]
+    groups: dict[str, list[Entry]] = {}
+    for e in minor:
+        groups.setdefault(NO_CHECK if e.check.startswith("X-") else e.check, []).append(
+            e
+        )
+    out = ["| Check | Low | Info | Other | Files |", "|---|---|---|---|---|"]
+    for check, group in sorted(
+        groups.items(), key=lambda item: (item[0] == NO_CHECK, -len(item[1]), item[0])
+    ):
+        low = sum(e.severity == "low" for e in group)
+        info = sum(e.severity == "info" for e in group)
+        files = len({_place(e.location)[0] for e in group})
+        out.append(
+            f"| {_cell(check)} | {low} | {info} | {len(group) - low - info} | {files} |"
+        )
+    return out
+
+
 def render(found: list[Entry]) -> str:
     """Render the register. The same files always give the same text."""
     left = unreported(found)
@@ -204,7 +232,19 @@ def render(found: list[Entry]) -> str:
         ]
     else:
         out.append("None.")
-    out += ["", "## Reported by a specialist", ""]
+    out += [
+        "",
+        "## Low and info findings not reported, by check",
+        "",
+        "The findings in the table above that are rated below Medium, counted by "
+        "check. The final report repeats this table, so a reader sees what kinds "
+        "of fault are recorded here only.",
+        "",
+        *_by_check(left),
+        "",
+        "## Reported by a specialist",
+        "",
+    ]
     if reported:
         out += [
             "| ID | Severity | Reported as | Check | Location |",

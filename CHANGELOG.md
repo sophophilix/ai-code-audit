@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.25.1 – 2026-11-16: Low findings counted by check
+From a re-run of the verifier and lead reviewer with the register. All 82
+Medium and higher findings that no specialist reported were named in the report
+or backlog, where the first run named 17. The four planted issues missing from
+the first report stayed out of the report body: the file reviewer rated each
+Low, and the lead reviewer triages only Medium and higher.
+- **The register counts the unreported Low and info findings by check**, most
+  common first. Checks the reviewer made up (`X-`) share one row. The lead
+  reviewer copies the table into the report's appendix, so a reader sees which
+  kinds of fault are in the register only.
+- The table doesn't make any of them a finding in the report body.
+
 ## 0.25.0 – 2026-11-16: File-review findings reach the report
 From the first full evaluation run. The file reviewers and tracers wrote 621
 findings. The specialists read them as a map and reported 28, by Key or by ID.
