@@ -130,6 +130,30 @@ def test_the_register_counts_and_lists_what_no_specialist_reports(
     assert "| TRACE-t01-001 | high | SEC-002 | X-zip | lib/export.js:6 |" in reported
 
 
+def test_unreported_findings_below_medium_are_counted_by_check() -> None:
+    stored = parse_findings(
+        block("FILE-u001-001", "SLOP-DUP:a.js", "low")
+        + block("FILE-u002-001", "SLOP-DUP:b.js", "info").replace(
+            "lib/export.js", "b.js"
+        )
+        + block("FILE-u003-001", "SLOP-DUP:a.js", "odd")
+        + block("FILE-u001-002", "PY-ASSERT-CHECK:a.js", "low")
+        + block("FILE-u001-003", "X-one:a.js", "low")
+        + block("FILE-u001-004", "X-two:a.js", "low")
+        + block("FILE-u001-005", "X-three:a.js", "low")
+        + block("FILE-u001-006", "SLOP-GOD:a.js", "medium")
+        + block("FILE-u001-007", "NODE-EXEC:lib/export.js", "low")
+    )
+    text = register.render(register.entries(stored, parse_findings(SECURITY)))
+    section = text.split("## Low and info findings not reported, by check")[1]
+    rows = [r for r in section.split("## Reported")[0].splitlines() if r[:1] == "|"]
+    assert rows[2:] == [
+        "| SLOP-DUP | 1 | 1 | 1 | 2 |",
+        "| PY-ASSERT-CHECK | 1 | 0 | 0 | 1 |",
+        "| No catalogue check (`X-`) | 3 | 0 | 0 | 1 |",
+    ]
+
+
 def test_the_same_files_give_the_same_register(audited: Workspace) -> None:
     assert register.render(register.build(audited)) == register.render(
         register.build(audited)
@@ -149,6 +173,8 @@ def test_a_register_with_nothing_left_says_none(audited: Workspace) -> None:
     stored = parse_findings(TRACE)
     text = register.render(register.entries(stored, parse_findings(SECURITY)))
     assert "## Not reported by a specialist\n\nNone.\n" in text
+    assert "by check\n\nThe findings" in text
+    assert "recorded here only.\n\nNone.\n" in text
     assert register.render(register.entries(stored, [])).endswith(
         "## Reported by a specialist\n\nNone.\n"
     )
