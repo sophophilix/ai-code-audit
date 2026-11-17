@@ -45,6 +45,13 @@ can cite a scan line instead of an opinion:
   `dmmulroy/anti-slop` (its accumulator-copy rule, used in SLOP-QUADRATIC).
   Both are MIT and describe their rules as the author's taste; neither is
   installed or run by the kit. Their other rules are style, or need TypeScript.
+- The severity guide's levels are reviewer judgement. Its form, yes-or-no
+  questions that code must answer, follows AWS, *Configuring your AI
+  vulnerability harness, part 2: the steering file*:
+  https://aws.amazon.com/blogs/security/configuring-your-ai-vulnerability-harness-part-2-the-steering-file/
+  The rule "if you can't state the damage, the answer is no" follows the
+  severity anchors in Cloudflare's `security-audit-skill`:
+  https://github.com/cloudflare/security-audit-skill
 
 ## Check catalogue
 <!-- brief: script, component, inline script, sql, markup, stylesheet, inline style, python -->
@@ -82,6 +89,46 @@ SLOP-SWALLOW `S110`, `S112`, `BLE001`, `SIM105`; SLOP-ASYNC `ASYNC*`; SLOP-LOGIC
 (parameters); SLOP-LEFTOVER `T20`, `ERA001`, `FIX002`. There's no unused-code
 scan for Python, so search for callers before calling code dead.
 
+## Severity guide
+<!-- brief: script, component, inline script, sql, markup, stylesheet, inline style, python -->
+Each check has yes-or-no questions about the consequence. Ask the High question
+first, then the Medium one. The first yes sets the level. If both are no, use
+the last column.
+
+- The guide sets the level and nothing else. A fault is still a finding when
+  both answers are no: report it at the level in the last column.
+- A yes needs a line in this unit that shows it. Name the question and the line
+  in the finding's evidence ("Medium: line 42 returns `True` after the failed
+  write").
+- If you can't say what goes wrong and for whom, the answer is no.
+- If only another file can answer a question, record the edge and treat the
+  answer as yes for now. The cap for an open edge then holds the finding at
+  Medium until a trace resolves it.
+- The caps still apply. High needs a trigger and must be `verified`.
+- You may rate one level above or below the guide when this system gives a
+  reason. State the reason in the finding. Never move a level without one.
+- A "none" in the High column means the check alone doesn't reach High. If the
+  fault does more harm than that, another catalogue has a check for it.
+
+| CHECK-ID | High if | Medium if | Otherwise |
+|---|---|---|---|
+| SLOP-DUP | One copy lacks a security or data-integrity check that the other copy has | The copies hold a business rule (validation, a calculation, a permission) and already differ, so one of them is wrong | Low |
+| SLOP-DEAD | A security or permission check is defined and nothing calls it, so the protection it names doesn't run | A validation, a control or a feature switch is never called or read, and a reader would believe it is active | Low |
+| SLOP-SWALLOW | The hidden failure loses or corrupts stored data, or skips a security or permission check. This includes a failed undo, rollback or cleanup that nothing reports | The caller or the person is told the operation succeeded after it failed, or the code continues with a default as if it had succeeded | Low: only diagnostic detail is lost |
+| SLOP-PHANTOM-DEP | Code imports or declares a name that `scans/upstream-status.json` shows doesn't exist, so anyone can register it | A package is used but not declared, or an unused one has install scripts or a known advisory | Low: declared and unused |
+| SLOP-HALLUCINATED-API | The call or option that doesn't exist was meant to apply a protection (a timeout, a validation, an escape, a permission), so the protection is off | The call fails or the option is ignored on a path that normal use reaches | Low: only tests or unreachable code use it |
+| SLOP-OVERENG | none | The layer hides where a security, validation or transaction decision is made | Low |
+| SLOP-CONFIG-SPRAWL | A default or a combination of flags turns off a security control and nothing reports it | A default that isn't documented changes behaviour in production, or behaviour depends on a combination of flags | Low |
+| SLOP-FAKE-TEST | none | It's the only test in this unit for a path that handles money, access, personal data or a stored write, or a script reports a pass without checking | Low |
+| SLOP-COMMENT | none | The comment states a check, a validation or a guarantee that the code doesn't perform | Low for another contradiction or a stale header. One `low` or `info` finding per file for narration |
+| SLOP-ASYNC | A `return` in `finally`, an async executor or a call that isn't awaited discards the failure of a stored write or a security check | An error is lost, or the caller continues before the work has finished | Low |
+| SLOP-LOGIC | The condition or missing return turns off a security check or a validation, or picks the wrong branch for money or a stored write | A branch can never run, or a caller in this unit uses the missing return value | Low: the behaviour doesn't change |
+| SLOP-QUADRATIC | none until an experiment measures it | The code runs on a request path, a caller controls `n`, and nothing caps it | Low: `n` is capped, or the code is off the request path |
+| SLOP-INCONSISTENT | none | One of the ways lacks a protection that the others have (a timeout, a validation, error handling, escaping) | Low |
+| SLOP-GOD | none | A function that fails the complexity gate holds a security, money or stored-write decision | Low |
+| SLOP-LEFTOVER | A debug route, a bypass or a test credential is reachable in the running system | Commented-out or debug code turns off a check | Low |
+| SLOP-SILENT-DEGRADE | Missing config turns off a security control, or stored writes go nowhere, and nothing reports it | A feature turns off or falls back and nothing reports it | Low: the fallback is reported and the feature isn't essential |
+
 ## Dependency manifest
 <!-- brief: manifest -->
 A manifest is the only place a package that nothing uses shows up: no code
@@ -97,9 +144,10 @@ list each one that no own file requires or imports and no script names.
 1. Start with the scans. Deterministic tools give numbers you can repeat.
 2. For each check, find the strongest 1–5 examples and read them in context.
 3. Write one finding per root cause, with Key `SLOP-...:<most affected file>`.
-4. Severity is set by **consequence**, not by how ugly the code is. A swallowed
-   error on the path that submits a citizen's report is High. Duplicated
-   formatting helpers are Low.
+4. Severity is set by **consequence**, not by how ugly the code is. Answer the
+   questions in the severity guide for the check. A swallowed error on the path
+   that submits a citizen's report is High. Duplicated formatting helpers are
+   Low.
 5. Close with an `info` finding giving an overall view: the patterns that
    dominate, and the order to tackle them (tests before refactors).
 

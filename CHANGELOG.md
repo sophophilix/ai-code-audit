@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.25.2 – 2026-11-17: A severity guide for the SLOP checks
+The 16 `SLOP-*` checks had no severity guide, though the file reviewer is told
+to rate from one. All six `SLOP-SWALLOW` findings in the evaluation run were
+rated Low, one of them a planted fault the key rates High.
+- **The AI-code-quality catalogue has a severity guide.** Each check has a High
+  question and a Medium question about the consequence, and the first yes sets
+  the level. A yes needs a line in the unit. The reviewer may move one level
+  with a stated reason, so the guide isn't a floor.
+- A question that only another file can answer counts as yes, with an open
+  edge. The existing cap then holds the finding at Medium until a trace.
+- The form follows the AWS steering-file post and the severity anchors in
+  Cloudflare's `security-audit-skill`. The levels are reviewer judgement.
+
+One re-review of the six units, before the guide's first rule ("the guide sets
+the level and nothing else") was added. Two `SLOP-SWALLOW` findings rose from
+Low to Medium, the planted one among them, and one stayed Low. Three were not
+reported again. Two `SLOP-GOD` findings rose from Low to Medium. The six
+records held 28 findings, where the run before held 34. One run can't separate
+the guide's effect from the difference between runs. The reviewer named the
+question in the evidence field in none of the three, so nothing checks that yet.
+All six units needed a repair pass for a wrong excerpt or check answer, where
+two did in the run before.
+
 ## 0.25.1 – 2026-11-16: Low findings counted by check
 From a re-run of the verifier and lead reviewer with the register. All 82
 Medium and higher findings that no specialist reported were named in the report
