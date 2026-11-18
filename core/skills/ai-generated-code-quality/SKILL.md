@@ -107,8 +107,8 @@ the last column.
 - The caps still apply. High needs a trigger and must be `verified`.
 - You may rate one level above or below the guide when this system gives a
   reason. State the reason in the finding. Never move a level without one.
-- A "none" in the High column means the check alone doesn't reach High. If the
-  fault does more harm than that, another catalogue has a check for it.
+- A "none" means the check alone doesn't reach that level. If the fault does
+  more harm than that, another catalogue has a check for it.
 
 | CHECK-ID | High if | Medium if | Otherwise |
 |---|---|---|---|
@@ -125,7 +125,7 @@ the last column.
 | SLOP-LOGIC | The condition or missing return turns off a security check or a validation, or picks the wrong branch for money or a stored write | A branch can never run, or a caller in this unit uses the missing return value | Low: the behaviour doesn't change |
 | SLOP-QUADRATIC | none until an experiment measures it | The code runs on a request path, a caller controls `n`, and nothing caps it | Low: `n` is capped, or the code is off the request path |
 | SLOP-INCONSISTENT | none | One of the ways lacks a protection that the others have (a timeout, a validation, error handling, escaping) | Low |
-| SLOP-GOD | none | A function that fails the complexity gate holds a security, money or stored-write decision | Low |
+| SLOP-GOD | none | none | Low |
 | SLOP-LEFTOVER | A debug route, a bypass or a test credential is reachable in the running system | Commented-out or debug code turns off a check | Low |
 | SLOP-SILENT-DEGRADE | Missing config turns off a security control, or stored writes go nowhere, and nothing reports it | A feature turns off or falls back and nothing reports it | Low: the fallback is reported and the feature isn't essential |
 

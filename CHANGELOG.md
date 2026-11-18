@@ -13,15 +13,18 @@ rated Low, one of them a planted fault the key rates High.
 - The form follows the AWS steering-file post and the severity anchors in
   Cloudflare's `security-audit-skill`. The levels are reviewer judgement.
 
-One re-review of the six units, before the guide's first rule ("the guide sets
-the level and nothing else") was added. Two `SLOP-SWALLOW` findings rose from
-Low to Medium, the planted one among them, and one stayed Low. Three were not
-reported again. Two `SLOP-GOD` findings rose from Low to Medium. The six
-records held 28 findings, where the run before held 34. One run can't separate
-the guide's effect from the difference between runs. The reviewer named the
-question in the evidence field in none of the three, so nothing checks that yet.
-All six units needed a repair pass for a wrong excerpt or check answer, where
-two did in the run before.
+Four reviews of the six units with the guide, and four without it:
+- The planted fault was rated Medium in 3 of 4 runs with the guide and never
+  High. Without it, Low in 6 of 7 runs, counting the three pilot runs.
+- Two units stopped reporting a `SLOP-SWALLOW` finding: 0 of 8 with the guide,
+  7 of 8 without. In both the error is returned or logged, and the reviewer
+  said so. The other four units reported at the same rate either way.
+- The six records held 21 to 34 findings with the guide and 25 to 34 without.
+- `SLOP-GOD` was rated Medium in most cases with the guide and Low in every
+  case without. **Its Medium question is removed**, so it stays Low unless the
+  reviewer gives a reason. No review has run since that change.
+- The reviewer named the question in the evidence field in about one finding
+  in six. Nothing checks it.
 
 ## 0.25.1 – 2026-11-16: Low findings counted by check
 From a re-run of the verifier and lead reviewer with the register. All 82
