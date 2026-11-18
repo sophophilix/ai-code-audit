@@ -191,9 +191,8 @@ repository.
 
 ## Licence
 
-No licence file has been added yet. Until one is, you can read and fork the
-code under GitHub's terms, but you don't have permission to reuse it. Open an
-issue if that blocks you.
+[MIT](LICENSE). Third-party rules and skills the kit uses keep their own
+licences, listed in `THIRD_PARTY.md`.
 
 ## Built on
 
