@@ -3,4 +3,4 @@
 See docs/architecture/ARCHITECTURE.md for boundaries and the exit-code contract.
 """
 
-__version__ = "0.25.3"
+__version__ = "0.26.0"

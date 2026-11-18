@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.26.0 – 2026-11-18: The kit checks the handler note and the severity evidence
+0.25.2 and 0.25.3 asked the file reviewer for two things in prose: a note when
+a handler check is `not found`, and the line that answered a severity guide
+question. Nothing refused a record without them.
+- **OUT-U7**: the unit has an `except`, `suppress(` or `catch`, a handler check
+  (`SLOP-SWALLOW`, `SLOP-LOSSY-HANDLER`) is `not found`, and its note gives no
+  line number in the unit. The record is refused and the pass repairs it.
+- **OUT-U8**: a `SLOP-*` finding rated Medium or higher whose evidence gives no
+  line number in the unit.
+- Both check that a line is named. Neither checks the reasoning about it.
+- **Decide `SLOP-SWALLOW` first**: a handler that tells the caller the work
+  succeeded is `SLOP-SWALLOW`, whatever else it does. In one run the planted
+  swallowed error was filed under `SLOP-LOSSY-HANDLER`.
+
+Two reviews of the six units, then four of the unit with the planted fault:
+- OUT-U7 refused 1 of 24 handler answers, and the repair pass fixed it. OUT-U8
+  refused none: every Medium `SLOP-*` finding named its question and line.
+- With the rule above, the planted fault was `SLOP-SWALLOW` in 4 of 4 runs.
+- It was rated Medium in 1 of those 4, and Low in the one six-unit run that
+  filed it as `SLOP-SWALLOW`. The reviewer's reason each time: the path serves
+  retired move plans and only a failure message is wrong. With 0.25.2 it was
+  Medium in 5 of 7 runs. The samples are small, and the cause isn't known.
+
 ## 0.25.3 – 2026-11-17: A check for handlers that report a failure badly
 With the severity guide, two units stopped reporting a `SLOP-SWALLOW` finding
 because the error is returned or logged. That was right for the check, but the

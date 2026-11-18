@@ -2,7 +2,7 @@
 
 ADR 0007 D3. The pass returns one JSON object. The kit validates it against
 `config/file-record.schema.json`, runs the record checks (OUT-F1 to F4, F7 to
-F9, U2, U4), and only then writes `.audit/files/<path>[#<part>].json` and
+F9, U2, U4, U6 to U8), and only then writes `.audit/files/<path>[#<part>].json` and
 renders the Markdown record beside it. IDs, the provenance header, the gate
 table and missing Evidence lines are the kit's, so a pass can't get them wrong.
 """
@@ -35,6 +35,15 @@ SHOWN = 12
 RECORD_VERSION = 1
 Severity = Literal["critical", "high", "medium", "low", "info"]
 SEVERITIES: tuple[Severity, ...] = ("critical", "high", "medium", "low", "info")
+# The checks that ask what an error handler does with a failure (OUT-U7).
+HANDLER_CHECKS = ("SLOP-SWALLOW", "SLOP-LOSSY-HANDLER")
+# Python `except` and `suppress(`, JavaScript `catch (e)`, `catch {` and `.catch(`.
+HANDLER = re.compile(r"^\s*except\b|\bsuppress\(|\bcatch\s*[({]", re.M)
+# The catalogue whose severity guide asks questions that a line must answer (OUT-U8).
+GUIDED_PREFIX = "SLOP-"
+GUIDED_SEVERITIES = ("critical", "high", "medium")
+# A number on its own, not part of a rule code (`BLE001`) or a version (`3.12`).
+NUMBER = re.compile(r"(?<![\w.])\d+(?![\w.])")
 Verification = Literal["verified", "unverified"]
 Level = Literal["high", "medium", "low"]
 Category = Literal[
@@ -127,7 +136,12 @@ class Finding(_Out):
     excerpt: str = Field(min_length=1, description="1-3 lines copied verbatim")
     trigger: str = Field(default="", description="required for critical and high")
     evidence: str = Field(
-        default="", description="built from location and excerpt if empty"
+        default="",
+        description=(
+            "built from location and excerpt if empty; for a SLOP finding rated "
+            "medium or higher: the severity guide question answered yes, and "
+            "the line that shows it"
+        ),
     )
     description: str = Field(min_length=1)
     impact: str = Field(min_length=1)
@@ -173,7 +187,14 @@ class CheckResult(_Out):
 
     check: str = Field(min_length=1, description="a CHECK-ID from the brief's list")
     result: CheckResultValue
-    note: str = Field(default="", description="for not applicable: why, in a few words")
+    note: str = Field(
+        default="",
+        description=(
+            "for not applicable: why, in a few words; for a handler check that is "
+            "not found in a unit with an error handler: each handler's line and "
+            "what it does with the failure"
+        ),
+    )
 
 
 class PassOutput(_Out):
@@ -356,6 +377,45 @@ def _finding_problems(unit: Unit, out: PassOutput, searcher: Searcher) -> list[s
     return found
 
 
+def _cites_unit_line(text: str, unit: Unit) -> bool:
+    """Return True if the text gives a line number inside the unit."""
+    return any(unit.start <= int(n) <= unit.end for n in NUMBER.findall(text))
+
+
+def _handler_note_problems(
+    unit: Unit, out: PassOutput, searcher: Searcher
+) -> list[str]:
+    """OUT-U7: a handler check that is `not found` says what each handler does.
+
+    Without the note, a later stage can't tell a handler that was read and
+    judged sound from one that wasn't read.
+    """
+    lines = searcher.lines(unit.path) or []
+    if not HANDLER.search("\n".join(lines[unit.start - 1 : unit.end])):
+        return []
+    return [
+        f"OUT-U7: {c.check} is not found, but the unit has an error handler: "
+        "give each handler's line number and what it does with the failure in "
+        "the check's note"
+        for c in out.checks
+        if c.check in HANDLER_CHECKS
+        and c.result == "not found"
+        and not _cites_unit_line(c.note, unit)
+    ]
+
+
+def _severity_evidence_problems(unit: Unit, out: PassOutput) -> list[str]:
+    """OUT-U8: a guided finding rated Medium or higher shows what set its level."""
+    return [
+        f"OUT-U8: findings[{i}]: {f.severity} under the severity guide: name the "
+        "question answered yes and the line number that shows it in evidence"
+        for i, f in enumerate(out.findings, 1)
+        if f.key.startswith(GUIDED_PREFIX)
+        and f.severity in GUIDED_SEVERITIES
+        and not _cites_unit_line(f.evidence, unit)
+    ]
+
+
 def problems(
     ws: Workspace,
     unit: Unit,
@@ -381,7 +441,9 @@ def problems(
         *found,
         *_location_problems(ws, unit, out, searcher),
         *_finding_problems(unit, out, searcher),
+        *_severity_evidence_problems(unit, out),
         *_check_problems(out, check_ids),
+        *_handler_note_problems(unit, out, searcher),
     ]
 
 

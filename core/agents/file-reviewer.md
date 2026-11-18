@@ -104,6 +104,13 @@ answer.
   found: keep it, and treat that line as holding a real literal value.
 - **Checks** (OUT-U6): every check in the list is answered once, and a check is
   `found` exactly when a finding's Key uses it.
+- **Error handlers** (OUT-U7): when the unit has an `except`, `suppress(` or
+  `catch` and you answer `not found` for `SLOP-SWALLOW` or `SLOP-LOSSY-HANDLER`,
+  the check's `note` gives each handler's line number and what it does with the
+  failure.
+- **Severity from a guide's questions** (OUT-U8): a `SLOP-*` finding rated
+  Medium or higher names, in `evidence`, the question answered yes and the line
+  number that shows it.
 - **Critical or High** needs a `trigger`: a concrete input or call sequence and
   what happens (OUT-F9). Without one, Medium at most. It must also be
   `verified`, so never with an open edge (OUT-U4).

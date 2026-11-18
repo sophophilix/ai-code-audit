@@ -278,6 +278,147 @@ def test_a_check_not_in_the_brief_fails_u6(
     assert problems == ["OUT-U6: checks not in this brief's list: JS-VAR"]
 
 
+JOB = (
+    "def load(path):\n"  # 1
+    "    try:\n"  # 2
+    "        return read(path)\n"  # 3
+    "    except OSError:\n"  # 4
+    "        return None\n"  # 5
+)
+HANDLER_CHECKS = ["SLOP-SWALLOW", "SLOP-LOSSY-HANDLER"]
+
+
+def handler_problems(
+    ws: Workspace,
+    code: str,
+    answers: dict[str, tuple[str, str]],
+    prefix: str = "OUT-U7",
+) -> list[str]:
+    """Check an output with no findings for a one-file unit holding `code`."""
+    ws.write_text("lib/job.py", code)
+    unit = Unit("u009", "lib/job.py", "", 1, len(code.splitlines()), "file")
+    data = {
+        "unit": unit.id,
+        "checks": [
+            {"check": check, "result": result, "note": note}
+            for check, (result, note) in answers.items()
+        ],
+        "facts": [],
+        "comments": [],
+        "flows": [],
+        "functions": [],
+        "findings": [],
+        "edges": [],
+        "limitations": [],
+    }
+    out = file_record.PassOutput.model_validate(data)
+    found = file_record.problems(ws, unit, out, Searcher(ws), list(answers))
+    return [p for p in found if p.startswith(prefix)]
+
+
+def test_a_handler_check_not_found_without_a_note_fails_u7(ws: Workspace) -> None:
+    answers = dict.fromkeys(HANDLER_CHECKS, ("not found", ""))
+    problems = handler_problems(ws, JOB, answers)
+    assert [p.split(" is ")[0] for p in problems] == [
+        "OUT-U7: SLOP-SWALLOW",
+        "OUT-U7: SLOP-LOSSY-HANDLER",
+    ]
+
+
+def test_a_note_that_names_no_line_in_the_unit_fails_u7(ws: Workspace) -> None:
+    answers = {"SLOP-SWALLOW": ("not found", "the handler at line 40 is deliberate")}
+    assert len(handler_problems(ws, JOB, answers)) == 1
+
+
+def test_a_note_that_names_the_handler_line_passes_u7(ws: Workspace) -> None:
+    note = "line 4 returns None, which the caller checks"
+    answers = dict.fromkeys(HANDLER_CHECKS, ("not found", note))
+    assert handler_problems(ws, JOB, answers, prefix="OUT-U") == []
+
+
+def test_a_unit_with_no_handler_needs_no_note(ws: Workspace) -> None:
+    answers = dict.fromkeys(HANDLER_CHECKS, ("not found", ""))
+    assert (
+        handler_problems(ws, "def load(path):\n    return read(path)\n", answers) == []
+    )
+
+
+def test_only_the_handler_checks_need_the_note(ws: Workspace) -> None:
+    answers = {
+        "SLOP-DUP": ("not found", ""),
+        "SLOP-SWALLOW": ("not applicable", "no error path"),
+    }
+    assert handler_problems(ws, JOB, answers) == []
+
+
+@pytest.mark.parametrize(
+    "handler",
+    [
+        "with suppress(OSError):\n    path.unlink()\n",
+        "try {\n  run();\n} catch (e) {\n}\n",
+        "try {\n  run();\n} catch {\n}\n",
+        "run().catch(() => {});\n",
+    ],
+)
+def test_each_kind_of_handler_is_seen(ws: Workspace, handler: str) -> None:
+    answers = {"SLOP-SWALLOW": ("not found", "")}
+    assert len(handler_problems(ws, handler, answers)) == 1
+
+
+def test_the_word_except_in_a_comment_is_not_a_handler(ws: Workspace) -> None:
+    code = "# every path except the root\nvalue = 1\n"
+    assert handler_problems(ws, code, {"SLOP-SWALLOW": ("not found", "")}) == []
+
+
+def guided(
+    ws: Workspace, route: Unit, make_output: Output, **changes: Any
+) -> list[str]:
+    """Return the OUT-U8 problems for the route unit's finding, as a SLOP finding."""
+    data = make_output(route, key=f"SLOP-SWALLOW:{route.path}", **changes)
+    out = file_record.PassOutput.model_validate(data)
+    found = file_record.problems(ws, route, out, Searcher(ws), [])
+    return [p for p in found if p.startswith("OUT-U8")]
+
+
+@pytest.mark.parametrize("severity", ["medium", "high", "critical"])
+def test_a_guided_finding_rated_medium_or_higher_needs_evidence(
+    ws: Workspace, route: Unit, make_output: Output, severity: str
+) -> None:
+    assert guided(ws, route, make_output, severity=severity) == [
+        f"OUT-U8: findings[1]: {severity} under the severity guide: name the "
+        "question answered yes and the line number that shows it in evidence"
+    ]
+
+
+def test_evidence_that_names_no_line_in_the_unit_fails_u8(
+    ws: Workspace, route: Unit, make_output: Output
+) -> None:
+    evidence = "Ruff BLE001 fires and the caller is told it succeeded, see line 40"
+    assert len(guided(ws, route, make_output, evidence=evidence)) == 1
+
+
+def test_evidence_that_names_the_line_passes_u8(
+    ws: Workspace, route: Unit, make_output: Output
+) -> None:
+    evidence = "Medium: line 7 sends ok after the failed call"
+    assert guided(ws, route, make_output, evidence=evidence) == []
+
+
+@pytest.mark.parametrize("severity", ["low", "info"])
+def test_a_low_guided_finding_needs_no_evidence(
+    ws: Workspace, route: Unit, make_output: Output, severity: str
+) -> None:
+    assert guided(ws, route, make_output, severity=severity) == []
+
+
+def test_a_finding_outside_the_guided_catalogue_needs_no_evidence(
+    ws: Workspace, route: Unit, make_output: Output
+) -> None:
+    out = file_record.PassOutput.model_validate(make_output(route))
+    found = file_record.problems(ws, route, out, Searcher(ws), [])
+    assert [p for p in found if p.startswith("OUT-U8")] == []
+
+
 def test_the_brief_lists_every_check_id_in_its_rules(
     ws: Workspace, briefs: list[Unit], route: Unit
 ) -> None:

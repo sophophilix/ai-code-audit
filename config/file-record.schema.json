@@ -12,7 +12,7 @@
         },
         "note": {
           "default": "",
-          "description": "for not applicable: why, in a few words",
+          "description": "for not applicable: why, in a few words; for a handler check that is not found in a unit with an error handler: each handler's line and what it does with the failure",
           "title": "Note",
           "type": "string"
         },
@@ -245,7 +245,7 @@
         },
         "evidence": {
           "default": "",
-          "description": "built from location and excerpt if empty",
+          "description": "built from location and excerpt if empty; for a SLOP finding rated medium or higher: the severity guide question answered yes, and the line that shows it",
           "title": "Evidence",
           "type": "string"
         },
