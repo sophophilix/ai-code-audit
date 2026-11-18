@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.25.3 – 2026-11-17: A check for handlers that report a failure badly
+With the severity guide, two units stopped reporting a `SLOP-SWALLOW` finding
+because the error is returned or logged. That was right for the check, but the
+points under it had nowhere else to go: a dropped traceback, silenced output,
+a failed cache entry.
+- **`SLOP-LOSSY-HANDLER`**: a handler that reports the failure but loses what
+  someone needs to act on it. Medium when the same failure repeats at a cost
+  on every run, otherwise Low.
+- **"Error handlers: which check"** maps what a handler does with the failure
+  to one check, so the same handler gets the same Key in every run.
+- **A `not found` for either handler check needs a note** that names each
+  handler's line and what it does with the failure.
+
+Three reviews of the same six units:
+- Every `not found` for the two checks had a note that named the lines.
+- The unit that returns its error as a string reported `SLOP-LOSSY-HANDLER`
+  in 3 of 3 runs. The unit that logs a failed cache read reported it in 1 of 3.
+  A note in another run gave a reason the code supports: a later line stores
+  the entry again.
+- One unit's finding moved from `SLOP-SWALLOW` to `SLOP-LOSSY-HANDLER` in all
+  three runs (a retry that drops the first error), so its Key differs from
+  earlier runs.
+- `SLOP-GOD` was Low in 9 of 9 cases. The six records held 4 to 8 Medium
+  findings and 25 to 29 findings in all.
+- The planted swallowed error was Medium in 2 of 3 runs.
+
 ## 0.25.2 – 2026-11-17: A severity guide for the SLOP checks
 The 16 `SLOP-*` checks had no severity guide, though the file reviewer is told
 to rate from one. All six `SLOP-SWALLOW` findings in the evaluation run were

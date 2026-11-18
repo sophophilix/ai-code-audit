@@ -63,6 +63,7 @@ column, `lint:<rule>` means a `scans/lint.json` message with that `ruleId`.
 | SLOP-DUP | Near-identical blocks or functions with small differences (copy and adapt instead of a shared helper); several implementations of the same rule | `scans/duplication.json` (blocks of 50 tokens or more); `scans/similar.json` (small named functions that mostly match another, with where they differ: the difference is often the bug); grep for distinctive literals |
 | SLOP-DEAD | Unused files, exports, routes, feature switches never read, functions never called | `scans/unused.json`; `lint:no-unused-vars`, `lint:no-unreachable`, `lint:no-useless-return`, `lint:no-unused-private-class-members`; grep callers. Chesterton's Fence first |
 | SLOP-SWALLOW | `catch {}` or `catch (e) {}` with no action, `.catch(() => {})`, errors logged then success returned, fallbacks that hide outages, rejections or throws that aren't `Error` objects | `lint:no-empty`, `lint:no-useless-catch`, `lint:prefer-promise-reject-errors`, `lint:no-throw-literal`; grep `catch`, read each handler |
+| SLOP-LOSSY-HANDLER | A handler that reports the failure (returns it, logs it or raises again) but loses what someone needs to act on it: the traceback or cause is dropped when the error becomes a string, a status or a default; the failed state stays in place so the same failure repeats on every run (a cache entry that isn't invalidated, a retry that changes nothing); diagnostics are silenced or redirected around the call; the handler does less than its docstring says | read each handler: what it returns, what it logs and what it leaves behind. The `SLOP-SWALLOW` lint rows point to candidates |
 | SLOP-PHANTOM-DEP | Dependencies declared but unused, used but undeclared, names that look like typosquats, or packages that may not exist (OpenSSF guide: hallucinated packages) | `package.json` vs imports; `scans/unused.json`; `scans/deps-audit.json`; `scans/upstream-status.json` |
 | SLOP-HALLUCINATED-API | Calls to methods or options that don't exist in the installed version of a library | compare with the library's docs for the locked version |
 | SLOP-OVERENG | Abstractions with one caller, configuration for things that never vary, layers that only pass through, "might be useful later" | read call sites |
@@ -84,10 +85,36 @@ files only; inline scripts in HTML are read by hand.
 
 For a Python unit, `lint:<rule>` means a `scans/lint-python.json` row from Ruff
 with the kit's config (ADR 0010). The equivalents: SLOP-DEAD `F401`, `F841`;
-SLOP-SWALLOW `S110`, `S112`, `BLE001`, `SIM105`; SLOP-ASYNC `ASYNC*`; SLOP-LOGIC
+SLOP-SWALLOW and SLOP-LOSSY-HANDLER `S110`, `S112`, `BLE001`, `SIM105`; SLOP-ASYNC `ASYNC*`; SLOP-LOGIC
 `PLR0124`, `RET503`, `SIM*`; SLOP-GOD `C901` (complexity 10), `PLR0913`
 (parameters); SLOP-LEFTOVER `T20`, `ERA001`, `FIX002`. There's no unused-code
 scan for Python, so search for callers before calling code dead.
+
+## Error handlers: which check
+<!-- brief: script, component, inline script, python -->
+Read every `except`, `catch` and `.catch` in the unit. Decide what happens to
+the failure, then use the check for that outcome. One outcome has one check, so
+the same handler gets the same Key in every run.
+
+| What the handler does with the failure | Check |
+|---|---|
+| Hides it. Nothing is returned, raised or logged, or the caller is told the work succeeded | `SLOP-SWALLOW` |
+| Reports it, but loses what someone needs to act on it: the cause, the traceback, or a repair of the failed state | `SLOP-LOSSY-HANDLER` |
+| Catches more kinds of error than the code inside can raise for a reason the handler can deal with | The broad-handler check in the language catalogue, such as `PY-BROAD-EXCEPT` |
+| Raises a new error without the original as its cause | The dropped-cause check in the language catalogue, such as `PY-CAUSE-DROPPED` |
+| Falls back because config or a service is missing | `SLOP-SILENT-DEGRADE` |
+| Writes error text that may hold a secret or personal data | The logging check in the language or profile catalogue |
+| Reports it to someone who can act, keeps the cause and leaves the state correct | No finding |
+
+- A handler that fits two rows gets a finding under each Key. A handler that
+  is logged and retried can still be `SLOP-LOSSY-HANDLER`.
+- "Reported" doesn't mean "fine". An error returned as a string with no
+  traceback is reported. So is a failure that is logged and then repeats on
+  every run. Both are findings.
+- When the unit has a handler and you answer `not found` for `SLOP-SWALLOW` or
+  `SLOP-LOSSY-HANDLER`, write a `note`. Name each handler's line and what it
+  does with the failure. Later stages read the note to tell "read, and handled
+  well" from "not read".
 
 ## Severity guide
 <!-- brief: script, component, inline script, sql, markup, stylesheet, inline style, python -->
@@ -114,7 +141,8 @@ the last column.
 |---|---|---|---|
 | SLOP-DUP | One copy lacks a security or data-integrity check that the other copy has | The copies hold a business rule (validation, a calculation, a permission) and already differ, so one of them is wrong | Low |
 | SLOP-DEAD | A security or permission check is defined and nothing calls it, so the protection it names doesn't run | A validation, a control or a feature switch is never called or read, and a reader would believe it is active | Low |
-| SLOP-SWALLOW | The hidden failure loses or corrupts stored data, or skips a security or permission check. This includes a failed undo, rollback or cleanup that nothing reports | The caller or the person is told the operation succeeded after it failed, or the code continues with a default as if it had succeeded | Low: only diagnostic detail is lost |
+| SLOP-SWALLOW | The hidden failure loses or corrupts stored data, or skips a security or permission check. This includes a failed undo, rollback or cleanup that nothing reports | The caller or the person is told the operation succeeded after it failed, or the code continues with a default as if it had succeeded | Low: the hidden failure changes nothing a caller or a person relies on |
+| SLOP-LOSSY-HANDLER | none | The same failure repeats on every run or request, and each repeat costs something: a paid call, a long retry or a rewrite | Low: only diagnostic detail is lost |
 | SLOP-PHANTOM-DEP | Code imports or declares a name that `scans/upstream-status.json` shows doesn't exist, so anyone can register it | A package is used but not declared, or an unused one has install scripts or a known advisory | Low: declared and unused |
 | SLOP-HALLUCINATED-API | The call or option that doesn't exist was meant to apply a protection (a timeout, a validation, an escape, a permission), so the protection is off | The call fails or the option is ignored on a path that normal use reaches | Low: only tests or unreachable code use it |
 | SLOP-OVERENG | none | The layer hides where a security, validation or transaction decision is made | Low |
