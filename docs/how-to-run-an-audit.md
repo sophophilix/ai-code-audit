@@ -6,6 +6,9 @@ for the audit itself, mostly spent reviewing.
 
 Commands are for macOS with zsh. Replace `<…>` placeholders.
 
+New to the kit? Do the 15-minute tutorial first:
+[Review your first file](tutorials/review-your-first-file.md).
+
 > **Shortcut:** the kit's `Makefile` / `bin/kit` does steps 1–6 and 9–10 for you,
 > idempotently (see the README). This guide explains what those commands do,
 > and how to do it by hand if you need to.
@@ -29,7 +32,7 @@ No approval, no audit. Pre-flight checks this.
 ## 1. Pin the kit version
 
 ```zsh
-cd ~/code/github.com/sophophilix/agent-audit-kit
+cd <where you cloned ai-code-audit>
 git status                       # must be clean
 git tag v$(cat VERSION)          # once per release; skip if already tagged
 KIT=$PWD
@@ -120,7 +123,9 @@ Keep it short, factual, and free of secrets and known-vulnerability details.
 
 ## 5. Choose models in `.audit/models.yaml`
 
-Start simple: **one approved provider**. Use a mid-tier model for discovery,
+Start simple: **one approved provider**. Copy
+`.audit-kit/config/models.single-provider.example.yaml` to `.audit/models.yaml`
+and fill in `region`. Use a mid-tier model for discovery,
 engineer and accessibility, and a top-tier model for architect, security,
 verifier and lead reviewer. Until a second provider is approved, give the
 verifier a different model from the authors.
@@ -141,7 +146,9 @@ npm init -y >/dev/null && npm install --ignore-scripts jscpd@<pinned-version>
 cd "$WS"
 ```
 
-Then, in the workspace:
+Then, in the workspace. These commands are for a JavaScript target. `kit scan`
+runs the equivalent scans for a Python target: Ruff with the kit's config, and
+the lockfile audit.
 
 ```zsh
 cloc --exclude-dir=node_modules,.audit,.audit-kit,.claude --json . > .audit/scans/cloc.json
