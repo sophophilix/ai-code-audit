@@ -11,7 +11,7 @@ It does the steps below idempotently. By hand:
 From the root of a **disposable clone** of the target, on an `audit/<date>` branch:
 
 ```bash
-KIT=~/code/github.com/sophophilix/agent-audit-kit
+KIT=<where you cloned ai-code-audit>
 git -C "$KIT" describe --tags --always          # record the kit version you're using
 mkdir -p .audit-kit .audit/scans .audit/adr .claude/agents .claude/commands .claude/skills
 cp -R "$KIT"/{AGENTS.md,VERSION,core,profiles,evals,templates,config} .audit-kit/

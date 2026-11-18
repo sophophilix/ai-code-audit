@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.26.1 – 2026-11-18: A README, a tutorial and a one-provider model file
+The README still said the kit was at 0.1.0 and held definitions only. A new
+reader had no short way to try it, and the example model file needed three
+providers.
+- **README** rewritten for someone who hasn't seen the kit: what you get, with
+  the output of a real review, what you need, and where the kit stands with the
+  evaluation's numbers.
+- **Tutorial**: `docs/tutorials/review-your-first-file.md` reviews one 18-line
+  file. Its steps from creating the project to reading the cost were run in
+  new folders with this version, on the author's machine. The clone and the
+  tool install were not: nobody has yet installed the kit on a second machine.
+- **`config/models.single-provider.example.yaml`**: every agent on one
+  provider. It passes `kit validate` once `region` is filled in.
+- **`CONTRIBUTING.md`** holds the checks to run and the client-terms hook,
+  moved from the README.
+- The how-to guide points at the tutorial and the one-provider file, and no
+  longer uses the repository's old name.
+- There is still no licence file, and the README says so.
+
 ## 0.26.0 – 2026-11-18: The kit checks the handler note and the severity evidence
 0.25.2 and 0.25.3 asked the file reviewer for two things in prose: a note when
 a handler check is `not found`, and the line that answered a severity guide

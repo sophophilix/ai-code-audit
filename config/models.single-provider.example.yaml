@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=../.audit-kit/config/models.schema.json
+# Model assignment for an audit run with one provider (Anthropic, through
+# Claude Code). Use it to try the kit, or when only one provider is approved.
+# Copy it to .audit/models.yaml in the audit workspace and fill in `region`.
+# `make validate` then checks it. The concepts and the multi-provider form are
+# explained in models.example.yaml.
+#
+# With one provider, the verifier is from the same model family as the agents
+# it checks. `make validate` warns about that. Record it as a limitation in
+# project.md, and give the verifier a different model from the authors, as here.
+
+version: 1
+
+limits:
+  max_parallel_passes: 1     # passes running at once. Raise only if your plan's rate limits allow it
+  lock_stale_minutes: 30     # a LOCK older than this may be taken over (the coordinator logs it)
+  on_rate_limit: stop        # stop: mark the pass interrupted and tell the tech lead. Never retry in a loop
+
+providers:
+  anthropic:
+    family: claude
+    approved_in_project_md: true      # pre-flight checks this against project.md
+    region: ""                        # where inference is processed, e.g. "United States"
+
+harnesses:
+  claude-code: { providers: [anthropic], invoke: "claude -p --agent <agent-file>" }
+
+agents:
+  coordinator:
+    model: { provider: anthropic, model: claude-opus-5-5, harness: claude-code }
+
+  discovery:
+    passes:
+      - { label: a, provider: anthropic, model: claude-sonnet-5-5, harness: claude-code }
+
+  architect:
+    passes:
+      - { label: a, provider: anthropic, model: claude-opus-5-5, harness: claude-code }
+
+  engineer:
+    passes:
+      - { label: a, provider: anthropic, model: claude-sonnet-5-5, harness: claude-code }
+
+  security:
+    passes:
+      - { label: a, provider: anthropic, model: claude-sonnet-5-5, harness: claude-code }
+
+  accessibility:
+    passes:
+      - { label: a, provider: anthropic, model: claude-sonnet-5-5, harness: claude-code }
+
+  verifier:
+    passes:
+      - { label: a, provider: anthropic, model: claude-opus-5-5, harness: claude-code }
+
+  lead-reviewer:
+    passes:
+      - { label: a, provider: anthropic, model: claude-opus-5-5, harness: claude-code }
+
+  # `kit review` runs these passes itself with `claude -p` (ADR 0007).
+  file-reviewer:
+    passes:
+      - { label: a, provider: anthropic, model: claude-sonnet-5-5, harness: claude-code }
+
+  tracer:
+    passes:
+      - { label: a, provider: anthropic, model: claude-sonnet-5-5, harness: claude-code }
+
+# off | pilot | full. A pilot reviews only the units the tech lead picks from
+# .audit/work/files/units.tsv, to measure cost and accuracy first (ADR 0002 D9).
+# `kit review --units u001,u002` reviews named units whatever the mode.
+file_review:
+  mode: "off"
+  pilot_units: []
