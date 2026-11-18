@@ -17,7 +17,9 @@ providers.
   moved from the README.
 - The how-to guide points at the tutorial and the one-provider file, and no
   longer uses the repository's old name.
-- There is still no licence file, and the README says so.
+- **The kit is licensed under MIT.** `LICENSE` is added and the package
+  metadata names it. Third-party material keeps its own licences
+  (`THIRD_PARTY.md`).
 
 ## 0.26.0 – 2026-11-18: The kit checks the handler note and the severity evidence
 0.25.2 and 0.25.3 asked the file reviewer for two things in prose: a note when
