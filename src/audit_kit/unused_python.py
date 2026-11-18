@@ -146,7 +146,7 @@ def declared(manifest: Mapping[str, Any]) -> list[Declared]:
             uv.get("dev-dependencies") if isinstance(uv, dict) else None
         )
     ]
-    # An extra that names the project itself (`cerno[office]`) isn't a dependency.
+    # An extra that names the project itself (`myapp[office]`) isn't a dependency.
     return [d for d in found if normalise(d.name) != own]
 
 

@@ -35,6 +35,8 @@ every record, so a record reused from an earlier audit is checked against this o
 | OUT-U4 | No Critical or High finding depends on an open edge or is `unverified`, and no finding with an open edge is `verified` | yes |
 | OUT-U5 | The brief shows every scan row its table counts, and the record's counts match the brief's | yes |
 | OUT-U6 | Every check ID in the brief is answered once (`found`, `not found` or `not applicable`), and a check is `found` exactly when a finding's Key uses it. Run by `kit review` | yes |
+| OUT-U7 | When the unit has an error handler (`except`, `suppress(`, `catch`) and `SLOP-SWALLOW` or `SLOP-LOSSY-HANDLER` is `not found`, the check's note gives a line number in the unit. Run by `kit review` | yes |
+| OUT-U8 | A `SLOP-*` finding rated Medium or higher gives a line number in the unit in its evidence, for the severity guide question it answered yes. Run by `kit review` | yes |
 
 ## Verification (`06`)
 | ID | Check | Auto |

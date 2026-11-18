@@ -106,6 +106,9 @@ the same handler gets the same Key in every run.
 | Writes error text that may hold a secret or personal data | The logging check in the language or profile catalogue |
 | Reports it to someone who can act, keeps the cause and leaves the state correct | No finding |
 
+- Decide `SLOP-SWALLOW` first. If the caller or the person is told the work
+  succeeded, the handler is `SLOP-SWALLOW`, whatever else it does. A function
+  that returns `True` after a failed call is not `SLOP-LOSSY-HANDLER`.
 - A handler that fits two rows gets a finding under each Key. A handler that
   is logged and retried can still be `SLOP-LOSSY-HANDLER`.
 - "Reported" doesn't mean "fine". An error returned as a string with no
@@ -114,7 +117,7 @@ the same handler gets the same Key in every run.
 - When the unit has a handler and you answer `not found` for `SLOP-SWALLOW` or
   `SLOP-LOSSY-HANDLER`, write a `note`. Name each handler's line and what it
   does with the failure. Later stages read the note to tell "read, and handled
-  well" from "not read".
+  well" from "not read". The kit refuses a record without it (OUT-U7).
 
 ## Severity guide
 <!-- brief: script, component, inline script, sql, markup, stylesheet, inline style, python -->
@@ -126,7 +129,8 @@ the last column.
   both answers are no: report it at the level in the last column.
 - A yes needs a line in this unit that shows it. Name the question and the line
   in the finding's evidence ("Medium: line 42 returns `True` after the failed
-  write").
+  write"). For Medium and higher the kit refuses a record without the line
+  number (OUT-U8).
 - If you can't say what goes wrong and for whom, the answer is no.
 - If only another file can answer a question, record the edge and treat the
   answer as yes for now. The cap for an open edge then holds the finding at
