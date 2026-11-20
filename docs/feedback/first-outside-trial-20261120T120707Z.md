@@ -64,11 +64,14 @@
 - What the kit does today: `kit diagrams` writes `.drawio` files. You export
   SVG or PNG by hand in draw.io (`docs/how-to-run-an-audit.md`, section 9).
   So a run with no draw.io gives no images. This matches what the tester saw.
-- Status: `checked`, partly `user error`
-- Next step: say in the tutorial that images need a manual export. Check
-  whether drawio-skill can export headless on Linux. Find out which "image
-  viewer" the run tried to install. Rule 3 forbids installing tools during a
-  run, so that attempt may be a separate problem.
+- Likely cause: `make tools` installed draw.io with a Homebrew cask, which
+  is macOS only (`src/audit_kit/machine.py` before 0.26.2). Not yet confirmed
+  with the tester.
+- Status: `planned`
+- Next step: 0.26.2 prints a Linux install command for draw.io instead. The
+  README says images need a manual export. Confirm the message with the
+  tester. Automatic SVG and PNG export from `make diagrams` needs a decision
+  record first.
 
 ### F5. Unclear where to clone and where to run commands
 
@@ -91,9 +94,10 @@
   Makefile and `bin/checkpoint` need a POSIX shell
   (`docs/architecture/ARCHITECTURE.md`, decision log). Nobody has recorded a
   full run on WSL2 before this trial.
-- Status: `checked`
-- Next step: record what worked and what failed on WSL2 after the demo. F4 is
-  one result.
+- Status: `done` in 0.26.2, for the tool install
+- Next step: on Linux without Homebrew, `make tools` now prints an install
+  command for each missing tool. The README and tutorial describe Linux and
+  WSL2. Ask the tester to run `make tools` again, and record what worked.
 
 ### F7. Positive: the evaluation
 
@@ -160,3 +164,4 @@
 | Reviewed at | Decision | Notes |
 |---|---|---|
 | 2026-11-20T12:07:07Z | Drafted | Recorded from two chats on the same day. Names removed. |
+| 2026-11-21 | Updated | F4 and F6 after 0.26.2 (Linux install commands). |

@@ -72,4 +72,4 @@ employer without their permission. Don't record a client's name or code.
 
 | Date | Record | Who | Points | Open |
 |---|---|---|---|---|
-| 2026-11-20 | [First outside trial](first-outside-trial-20261120T120707Z.md) | Tester, less technical, Claude on Ubuntu (WSL) | 10 | 8 |
+| 2026-11-20 | [First outside trial](first-outside-trial-20261120T120707Z.md) | Tester, less technical, Claude on Ubuntu (WSL) | 10 | 7 |
