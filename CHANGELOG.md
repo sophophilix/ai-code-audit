@@ -20,6 +20,14 @@ providers.
 - **The kit is licensed under MIT.** `LICENSE` is added and the package
   metadata names it. Third-party material keeps its own licences
   (`THIRD_PARTY.md`).
+- **The README says who the kit is for**, after the first outside tester
+  expected it to fix their code. It adds a TL;DR, "Who it's for", "What it
+  solves" and "What it isn't", a table of what a full audit produces, the
+  diagrams and their four views, and a quick guide that separates the kit
+  folder from the workspace.
+- **`docs/feedback/`** records feedback from people who use the kit, one file
+  per session, with names removed. The first record holds ten points from the
+  first outside trial.
 
 ## 0.26.0 – 2026-11-18: The kit checks the handler note and the severity evidence
 0.25.2 and 0.25.3 asked the file reviewer for two things in prose: a note when

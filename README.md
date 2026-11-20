@@ -1,11 +1,48 @@
 # ai-code-audit
 
+> **TL;DR:** AI agents audit a codebase you didn't write, without running or
+> changing it. You get a report, architecture diagrams, ranked findings and a
+> backlog. Every finding cites a line you can open, and a person approves the
+> result. It's for tech leads and architects who must decide about a system.
+> It doesn't fix code. [Try it on one file in 15 minutes](docs/tutorials/review-your-first-file.md).
+
 Point it at a repository and get a code audit you can check. AI agents read
 every file, and every finding they report cites a line you can open. A person
 makes every decision.
 
 It audits JavaScript, TypeScript and Python. It works with code written by
 people, by AI coding agents, or both.
+
+## Who it's for
+
+It's for the person who has to decide about code they didn't write: a tech
+lead, architect or reviewer. You might be taking a system over, approving it
+for production, assessing a vendor's delivery, or checking what AI agents
+built. You need a view of it you can defend to a governance board.
+
+## What it solves
+
+A review you can't check is an opinion. This kit gives you one you can check:
+
+- Every finding quotes the lines it is about, and the kit re-reads them.
+- The kit never runs, builds or changes the code it reviews.
+- An independent agent tries to disprove each serious finding.
+- A person approves the result at two checkpoints.
+
+You get a current-state architecture with diagrams, findings ranked by
+severity, proposed decision records, and a backlog you can import.
+
+## What it isn't
+
+- **Not a fixer.** It reports problems and recommends fixes. It never changes
+  your code. To fix the findings, export them (`kit query`) and give them to
+  your own coding agent in a separate session.
+- **Not a CI gate.** A full audit takes hours and costs money. Run your
+  linters and scanners in CI, and run this audit when you have a decision to make.
+- **Not a penetration test.** It reads the code. It doesn't attack a running
+  system, so it can't prove that a flaw can be exploited.
+- **Not a replacement for people.** It's a careful second reader. A security
+  review by people is still needed where the risk calls for one.
 
 ## What you get
 
@@ -28,25 +65,108 @@ official source and the reason for its severity. For the second one:
 > succeeded after it failed". Line 18 (`return True`) runs after the handler at
 > lines 16-17 passes on `sqlite3.Error`.
 
-A full audit adds an architecture view, security and accessibility reviews, an
-independent verification pass, a written report, a briefing deck and a backlog
-you can import into your tracker.
+### What a full audit produces
 
-## Try it in 15 minutes
+All outputs go in the workspace's `.audit/` folder.
 
-The tutorial reviews that same 18-line file on your machine:
+| File | What it holds | Who reads it |
+|---|---|---|
+| `01-discovery.md` | What the system does, its parts, entry points and data | You, at checkpoint 1 |
+| `02-architecture.md` | Current state, risks, a target architecture and a phased path | Architects |
+| `03-engineering.md` | Code quality, tests, dependencies, AI-generated code faults | Developers |
+| `04-security.md` | Security findings, each with evidence and a fix | Security owner |
+| `05-accessibility.md` | Accessibility findings for web front ends | Product owner |
+| `06-verification.md` | Which serious findings survived an independent attempt to disprove them | You |
+| `07-final-report.md` | Part A for decision-makers (about two pages), Part B with the detail | Management, governance boards |
+| `08-backlog.csv` | One work item per finding, ready to import into Azure DevOps Boards | Delivery team |
+| `09-briefing.slides.md` | A short slide deck (Marp) for the briefing | Stakeholders |
+| `adr/` | Proposed architecture decision records. Only a person accepts them. | Architects |
+
+### Diagrams
+
+The architect agent draws two pictures of the system:
+
+- **As-is:** the system as the code shows it today.
+- **Target:** where it should go, matched to the phased path in the report.
+
+Each picture is context level: at most 15 boxes, grouped by trust zone, with
+official Azure icons where they apply. Every box and arrow points to the
+`file:line` that shows it exists. `make diagrams` builds each one as an
+editable draw.io file, plus a second file with four views of it:
+
+| View | Shows |
+|---|---|
+| Executive | Only the most important parts, for a non-technical reader |
+| Deployment | Where each part runs: environment and region |
+| Data flow | Where data goes, and how sensitive it is |
+| Security | Trust boundaries, and the paths that cross them |
+
+The architect can add smaller diagrams that each answer one question, and
+architecture rules for the target, such as "no direct path from the internet
+to a data store". `make diagrams` checks the target against them.
+
+The kit writes `.drawio` files, not images. Open them in
+[draw.io](https://www.drawio.com) to tidy them. Then export SVG for Markdown
+and PNG for Word or PowerPoint. Sequence, entity-relationship, data-flow and
+lifecycle diagrams are approved but not built yet
+([ADR 0009](docs/decisions/0009-more-diagram-types-on-drawio.md)).
+
+## Quick guide
+
+You work with two folders. Keep them apart:
+
+- **The kit**: this repository. Clone it once and run every `make` command
+  from inside it.
+- **A workspace**: a disposable copy of the code you audit, which the kit
+  creates for you. The agents work there. Your original repository is never
+  touched.
+
+To try it first, follow the tutorial. It reviews the 18-line file above:
 **[Review your first file](docs/tutorials/review-your-first-file.md)**.
 
-The short version:
+To audit a real system:
 
-```zsh
-git clone https://github.com/sophophilix/ai-code-audit.git && cd ai-code-audit
-make doctor                          # lists the tools you have and the ones you need
-make tools                           # installs the missing ones
-make project NAME=my-app             # a folder for this system's intake
-make workspace NAME=my-app SOURCE=<git url or path> REF=<commit> MODE=real
-make ready WS=<workspace>            # scans, detection and checks, no AI yet
-```
+1. Clone the kit and check your tools:
+
+   ```zsh
+   git clone https://github.com/sophophilix/ai-code-audit.git && cd ai-code-audit
+   make doctor                          # lists the tools you have and the ones you need
+   make tools                           # installs the missing ones
+   ```
+
+2. Create a project for the system, then fill in its six-line intake:
+
+   ```zsh
+   make project NAME=my-app             # creates ~/audit-projects/my-app
+   ```
+
+3. Create the workspace from the code you want to audit:
+
+   ```zsh
+   make workspace NAME=my-app SOURCE=<git url or path> REF=<commit> MODE=real
+   ```
+
+   The workspace is `~/code/audits/my-app-real-<date>`. Add `WS_NAME=my-app`
+   to choose the folder name.
+
+4. Run the scans and checks. This step uses no AI:
+
+   ```zsh
+   make ready WS=<workspace>
+   ```
+
+5. Open Claude Code in the workspace and start the audit:
+
+   ```zsh
+   cd <workspace> && claude             # then type: /audit   (after a limit: /audit resume)
+   ```
+
+6. Go back to the kit folder. Build the diagrams, make Word, PowerPoint and
+   PDF copies of the report, and check the outputs:
+
+   ```zsh
+   make diagrams publish verify WS=<workspace>
+   ```
 
 Every command is safe to run again: it does only what is missing.
 
@@ -89,12 +209,7 @@ Every command is safe to run again: it does only what is missing.
  Stage 4  lead reviewer: report, briefing, decisions, backlog   ◆ Checkpoint 2 (you)
 ```
 
-```zsh
-make ready WS=<workspace>
-cd <workspace> && claude             # then type: /audit   (after a limit: /audit resume)
-make diagrams publish verify WS=<workspace>
-```
-
+The [quick guide](#quick-guide) has the commands.
 **The full guide is [How to run an audit](docs/how-to-run-an-audit.md).**
 
 To set your expectations: one full audit of a Python application, split into
