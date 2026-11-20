@@ -125,11 +125,9 @@ def test_archive_entries_cannot_escape_the_workspace(tmp_path: Path) -> None:
     assert (dest / "ok/file.txt").read_bytes() == b"x"
 
 
-def test_tools_dry_run_without_homebrew_or_npm(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
-) -> None:
-    monkeypatch.setattr(machine, "have", lambda _tool: False)
-    s = KitSettings.load(
+def _no_tools(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> KitSettings:
+    monkeypatch.setattr(machine, "DRAWIO_APP", tmp_path / "none/draw.io")
+    return KitSettings.load(
         {
             "DRAWIO_SKILL_DIR": str(tmp_path / "none"),
             "JSCPD_BIN": str(tmp_path / "none/a/b/jscpd"),
@@ -137,7 +135,14 @@ def test_tools_dry_run_without_homebrew_or_npm(
             "TSC_BIN": str(tmp_path / "none/a/b/tsc"),
         }
     )
-    machine.tools(s, dry_run=True)
+
+
+def test_tools_dry_run_without_homebrew_or_npm(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    monkeypatch.setattr(machine, "have", lambda _tool: False)
+    monkeypatch.setattr(machine, "_linux", lambda: False)
+    machine.tools(_no_tools(monkeypatch, tmp_path), dry_run=True)
     captured = capsys.readouterr()
     assert "Homebrew not found" in captured.err
     assert (
@@ -145,6 +150,44 @@ def test_tools_dry_run_without_homebrew_or_npm(
         in captured.err
     )
     assert "Dry run: nothing installed." in captured.out
+
+
+def test_tools_on_linux_without_homebrew_prints_install_commands(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    monkeypatch.setattr(machine, "have", lambda _tool: False)
+    monkeypatch.setattr(machine, "_linux", lambda: True)
+    machine.tools(_no_tools(monkeypatch, tmp_path), dry_run=True)
+    err = capsys.readouterr().err
+    assert "Homebrew not found" not in err
+    assert "cloc missing; install it with: sudo apt install cloc" in err
+    assert "dot missing; install it with: sudo apt install graphviz" in err
+    assert "draw.io missing; install it with: sudo snap install drawio" in err
+
+
+def test_tools_on_linux_never_installs_drawio_with_homebrew(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    monkeypatch.setattr(machine, "have", lambda tool: tool == "brew")
+    monkeypatch.setattr(machine, "_linux", lambda: True)
+    machine.tools(_no_tools(monkeypatch, tmp_path), dry_run=True)
+    captured = capsys.readouterr()
+    assert "would brew install graphviz" in captured.out
+    assert "--cask" not in captured.out
+    assert "draw.io missing; install it with:" in captured.err
+
+
+def test_tools_on_macos_installs_drawio_with_homebrew(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    monkeypatch.setattr(machine, "have", lambda tool: tool == "brew")
+    monkeypatch.setattr(machine, "_linux", lambda: False)
+    machine.tools(_no_tools(monkeypatch, tmp_path), dry_run=True)
+    assert "would brew install --cask drawio" in capsys.readouterr().out
+
+
+def test_every_tool_tools_installs_has_a_linux_command() -> None:
+    assert {"uv", *machine.OPTIONAL[1:], "drawio"} <= machine.LINUX_INSTALL.keys()
 
 
 def test_doctor_reports_without_failing(capsys: pytest.CaptureFixture[str]) -> None:

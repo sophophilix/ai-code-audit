@@ -172,14 +172,33 @@ Every command is safe to run again: it does only what is missing.
 
 ## What you need
 
-- macOS, or Linux with [Homebrew](https://brew.sh). On Windows, use WSL2.
+- macOS, or Linux. On Windows, use Ubuntu in WSL2.
 - [git](https://git-scm.com) and [uv](https://docs.astral.sh/uv/).
 - [Claude Code](https://claude.com/claude-code) and an account that can run it.
   The file review runs through it. Other agent tools can run the later stages
   (`adapters/generic/README.md`).
 - `make tools` installs the scanners: gitleaks, cloc, osv-scanner, Ruff,
   Semgrep, jscpd, ESLint and TypeScript, plus Pandoc, Marp and draw.io for the
-  report.
+  report. It uses [Homebrew](https://brew.sh) where it can.
+
+### On Linux and WSL2
+
+Without Homebrew, `make tools` doesn't install the system tools. It prints the
+command for each missing one instead, because most of them need `sudo`. For
+example:
+
+```text
+  warn  cloc missing; install it with: sudo apt install cloc
+  warn  draw.io missing; install it with: sudo snap install drawio, or the .deb from https://github.com/jgraph/drawio-desktop/releases
+```
+
+Run the commands you're happy with, then run `make doctor` again. It still
+installs jscpd, ESLint, TypeScript and drawio-skill itself, which need Node.js
+and git.
+
+draw.io is only needed to tidy the diagrams and export them as images. The
+audit runs without it. In WSL2 you can instead install draw.io on Windows and
+open the `.drawio` files from the workspace there.
 
 ## Why it's built this way
 
@@ -240,7 +259,8 @@ What has been measured, on one application with 19 faults planted by hand:
 
 What to know before you rely on it:
 
-- It has been run with Claude Code on macOS. Other setups are untested.
+- A full audit has been run with Claude Code on macOS only. The kit's own
+  tests run on macOS and Ubuntu. One tester has started it on Ubuntu in WSL2.
 - Some rules for the agents are enforced by the kit and some only by
   instruction. `CHANGELOG.md` says which, release by release, and records what
   each change did in a live run, including the results that were disappointing.
