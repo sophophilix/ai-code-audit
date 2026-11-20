@@ -81,8 +81,11 @@ store: ## WS=: rebuild .audit/findings.duckdb from the records, traces and passe
 cost: ## WS=: turns, tokens, cost and time per stage and model
 	@$(K) cost "$(WS)"
 
-diagrams: ## WS=: build Diagram IR with the pinned drawio-skill
+diagrams: ## WS=: build Diagram IR with the pinned drawio-skill, then export images
 	@$(K) diagrams "$(WS)"
+
+export-diagrams: ## WS=: export the current .drawio files as images, after tidying
+	@$(K) export-diagrams "$(WS)"
 
 publish: ## WS=: Word, PowerPoint and PDF from the Markdown outputs
 	@$(K) publish "$(WS)"

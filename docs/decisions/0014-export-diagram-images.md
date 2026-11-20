@@ -1,8 +1,8 @@
 # ADR 0014: Export diagram images with the draw.io command line
 
-> Status: In review
+> Status: Approved
 > Created: 2026-11-20T13:32:00Z
-> Last reviewed: 2026-11-20T13:32:00Z
+> Last reviewed: 2026-11-20T14:30:02Z
 > Next review: after the first export on Linux and on WSL2
 
 ## Review guide
@@ -93,8 +93,8 @@ export as in D1 and names the package to install. `kit doctor` and
 The kit never adds `--no-sandbox`. If draw.io's sandbox fails on a machine,
 the export fails and the person decides what to do.
 
-**D4. Each export is bounded.** Each call has a timeout (`LONG` in
-`runner.py`). A failed page is reported and the rest continue. The command
+**D4. Each export is bounded.** Each call has a five-minute timeout
+(`TIMEOUT` in `diagram_export.py`). A failed page is reported and the rest continue. The command
 ends with a count, such as `exported 10 of 10 images`.
 
 **D5. Export again after tidying.** `kit diagrams` rebuilds the `.drawio`
@@ -157,3 +157,5 @@ the target influenced. The export runs offline, as `kit diagrams` does.
 | Date (UTC) | Reviewer | Outcome |
 |---|---|---|
 | 2026-11-20 | Claude (author) | Drafted after the first outside trial (feedback F4) |
+| 2026-11-20 | Tech lead | `approve` |
+| 2026-11-20 | Claude (author) | Built in 0.27.0. D4's timeout changed from `LONG` (30 minutes) to five minutes, because a hung draw.io start would otherwise hold the run. D2 gained one case: a file with no `<diagram>` element is one page. A real export on macOS wrote 20 of 20 images in 49 seconds. |

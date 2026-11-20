@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from audit_kit import cli, lookups, machine, outputs, scans
+from audit_kit import cli, diagram_export, lookups, machine, outputs, scans
 from audit_kit.errors import AuditKitError
 from audit_kit.settings import KitSettings
 from audit_kit.workspace import Workspace
@@ -99,6 +99,9 @@ def world(
     for key, value in env.items():
         monkeypatch.setenv(key, str(value))
     (bin_dir / "python3").symlink_to(sys.executable)
+    # Hide a real draw.io (macOS app, or Windows app under WSL2) from exports.
+    monkeypatch.setattr(diagram_export, "MACOS_APP", tmp_path / "no-app")
+    monkeypatch.setattr(diagram_export, "_wsl", lambda: False)
     source = make_repo()
     shutil.rmtree(source / ".audit")
     (source / "package-lock.json").write_text('{"lockfileVersion": 3}\n')
@@ -215,6 +218,42 @@ def test_diagrams_build_views_and_contracts(world: dict[str, Path]) -> None:
     outputs.diagrams(KitSettings.load(), str(world["ws"]))
     assert (diagrams / "target.drawio").is_file()
     assert (diagrams / "policy-results.json").is_file()
+
+
+def test_diagrams_without_drawio_still_build_and_say_so(
+    world: dict[str, Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    diagrams = world["ws"] / ".audit/diagrams"
+    (diagrams / "target.ir.json").write_text('{"nodes": []}')
+    outputs.diagrams(KitSettings.load(), str(world["ws"]))
+    assert (diagrams / "target.drawio").is_file()
+    assert "diagrams have no images: draw.io not installed" in capsys.readouterr().out
+
+
+def test_diagrams_export_images_with_drawio(
+    world: dict[str, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake_tools(world["bin"], ("drawio",))
+    monkeypatch.setattr(diagram_export, "_linux", lambda: False)
+    diagrams = world["ws"] / ".audit/diagrams"
+    (diagrams / "target.ir.json").write_text('{"nodes": []}')
+    outputs.diagrams(KitSettings.load(), str(world["ws"]))
+    assert (diagrams / "target.svg").is_file()
+    assert (diagrams / "target.png").is_file()
+
+
+def test_export_diagrams_keeps_the_tidied_file(
+    world: dict[str, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake_tools(world["bin"], ("drawio",))
+    monkeypatch.setattr(diagram_export, "_linux", lambda: False)
+    tidied = world["ws"] / ".audit/diagrams/target.drawio"
+    tidied.write_text('<mxfile><diagram name="Page-1"/></mxfile>')
+    before = tidied.read_text()
+    assert cli.main(["export-diagrams", str(world["ws"])]) == 0
+    assert tidied.read_text() == before
+    assert (tidied.parent / "target.png").is_file()
+    assert not any(c[0] == "diagramctl.py" for c in calls(world["log"]))
 
 
 def test_diagrams_need_drawio_skill(

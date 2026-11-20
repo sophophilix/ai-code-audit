@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.27.0 – 2026-11-20: Diagram images (ADR 0014)
+`kit diagrams` wrote `.drawio` files only, so a person exported every page by
+hand. The first outside tester saw no images on Ubuntu in WSL2.
+- **`kit diagrams` exports images** when draw.io is installed: an SVG and a
+  PNG at 2× for every page, such as `target.png` and `target-security.png`.
+  Without draw.io it builds the `.drawio` files and says how to export by hand.
+- **New `kit export-diagrams`** (`make export-diagrams WS=`) exports the
+  current `.drawio` files without rebuilding them, for use after tidying.
+- **draw.io is found per platform**: `drawio` on the PATH, the macOS app, or on
+  WSL2 the Windows app with paths converted by `wslpath`. On Linux with no
+  display, it runs under `xvfb-run -a` with `--disable-gpu`, and never with
+  `--no-sandbox`. `kit doctor` and `kit tools` report `xvfb-run` on Linux.
+- Each export has a five-minute timeout. A failed page is reported and the
+  rest continue.
+- Tested: 20 new unit and orchestration tests with a fake draw.io. A real
+  export on macOS (draw.io 32.7.4) of a past audit's diagrams wrote 20 of 20
+  images in 49 seconds, and the SVGs load nothing from the network. Not yet
+  run on Linux or WSL2.
+
 ## 0.26.2 – 2026-11-20: `make tools` works on Linux without Homebrew
 The first outside tester ran the kit on Ubuntu in WSL2. `make tools` knew only
 Homebrew, and it installed draw.io with a Homebrew cask, which is macOS only.

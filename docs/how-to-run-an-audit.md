@@ -287,8 +287,20 @@ done
   .audit/diagrams/target.drawio --rules .audit/diagrams/policy.yml
 ```
 
-Open the results in draw.io and tidy them. Export SVG for Markdown and slides,
-and PNG at 2× for Word and PowerPoint (File → Export as). Export VSDX for Visio users.
+When draw.io is installed, `kit diagrams` then exports every page as SVG for
+Markdown and slides, and PNG at 2× for Word and PowerPoint (ADR 0014). On Linux
+with no desktop it runs draw.io under `xvfb-run`. In WSL2 it can use draw.io
+installed on Windows. Without draw.io it builds the `.drawio` files only and
+says so.
+
+Open the results in draw.io and tidy them. Then export the tidied files:
+
+```zsh
+make export-diagrams WS=<workspace>
+```
+
+Don't run `make diagrams` after tidying, because it rebuilds the files from the
+IR. Export VSDX for Visio users by hand (File → Export as).
 
 ---
 

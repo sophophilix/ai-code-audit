@@ -173,12 +173,17 @@ def _parser() -> argparse.ArgumentParser:
         "ready", "install + detect + data check + scans + lookups + validate"
     ).add_argument("--no-seed", action="store_true")
     add(
-        "diagrams", "build .audit/diagrams/*.ir.json with the pinned drawio-skill"
+        "diagrams",
+        "build .audit/diagrams/*.ir.json with the pinned drawio-skill, then export images",
     ).add_argument(
         "--style",
         choices=diagram_style.STYLES,
         default="handdrawn",
         help="house style: handdrawn (default) or clean",
+    )
+    add(
+        "export-diagrams",
+        "export the current .drawio files as SVG and PNG, after tidying them",
     )
     add("publish", "Word, PowerPoint and PDF from the Markdown outputs")
     add("verify", "run the automated output checks")
@@ -415,6 +420,7 @@ HANDLERS: dict[str, Handler] = {
     "sandbox": _done(lambda a, s: sandbox.sandbox(s, a.workspace, a.job, a.file)),
     "ready": _ready,
     "diagrams": _done(lambda a, s: outputs.diagrams(s, a.workspace, a.style)),
+    "export-diagrams": _done(lambda a, s: outputs.export_diagrams(s, a.workspace)),
     "publish": _done(lambda a, s: outputs.publish(s, a.workspace)),
     "verify": _verify,
     "status": _done(lambda a, s: workspaces.status(s, a.workspace)),
