@@ -37,6 +37,7 @@ mixed. `evals/README.md` describes the full evaluation.
 | How one role works | `core/agents/<role>.md` |
 | A check, or knowledge of a stack, cloud or regulator | a pack in `profiles/<name>/` with `pack.toml` and `SKILL.md` (ADR 0012) |
 | A decision that changes how the kit works | a new record in `docs/decisions/` |
+| Feedback from someone who used the kit | a record in `docs/feedback/` (see its README) |
 | Tool-specific settings | `adapters/` |
 
 ## Keep client details out of this repository
