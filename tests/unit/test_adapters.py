@@ -263,6 +263,8 @@ def test_tools_installs_only_what_is_missing(
 ) -> None:
     fake_tools(world["bin"], ("brew", "npm"))
     monkeypatch.setattr(machine, "DRAWIO_APP", tmp_path / "no-app")
+    # draw.io's Homebrew cask is macOS only; Linux is covered in test_platform.
+    monkeypatch.setattr(machine, "_linux", lambda: False)
     s = KitSettings.load(
         {**os.environ, "JSCPD_BIN": str(tmp_path / "tools/node_modules/.bin/jscpd")}
     )
