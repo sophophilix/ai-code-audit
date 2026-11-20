@@ -1,8 +1,8 @@
 # ADR 0015: One local HTML file to read the whole audit
 
-> Status: In review
+> Status: Approved
 > Created: 2026-11-20T20:42:54Z
-> Last reviewed: 2026-11-20T20:42:54Z
+> Last reviewed: 2026-11-20T21:19:14Z
 > Next review: after the first audit that ships the page
 
 ## Review guide
@@ -184,3 +184,4 @@ verifier hasn't confirmed is labelled `unverified` wherever it appears.
 | Date (UTC) | Reviewer | Outcome |
 |---|---|---|
 | 2026-11-20 | Claude (author) | Drafted after the first outside trial (feedback F3) |
+| 2026-11-20 | Tech lead | `approve` |
