@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.26.2 – 2026-11-20: `make tools` works on Linux without Homebrew
+The first outside tester ran the kit on Ubuntu in WSL2. `make tools` knew only
+Homebrew, and it installed draw.io with a Homebrew cask, which is macOS only.
+- **On Linux without Homebrew, `make tools` prints an install command** for
+  each missing tool, such as `sudo apt install cloc`. It never runs a package
+  manager itself, because those need `sudo`.
+- **On Linux, draw.io is never installed with Homebrew.** `make tools` points
+  to the snap or the `.deb` from the draw.io releases instead.
+- The README and the tutorial describe Linux and WSL2, and say what has been
+  tested there: the kit's own tests in CI, not yet a full audit.
+- Tested with unit tests that set the platform and the tools present. Not yet
+  run on a Linux machine by hand.
+
 ## 0.26.1 – 2026-11-18: A README, a tutorial and a one-provider model file
 The README still said the kit was at 0.1.0 and held definitions only. A new
 reader had no short way to try it, and the example model file needed three

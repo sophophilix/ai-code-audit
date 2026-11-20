@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import platform
 from pathlib import Path
 
 from audit_kit.console import ok, say, skip, warn
@@ -25,6 +26,27 @@ OPTIONAL = (
 BREW_FORMULA = {"dot": "graphviz", "marp": "marp-cli"}
 DRAWIO_APP = Path("/Applications/draw.io.app/Contents/MacOS/draw.io")
 DRAWIO_REPO = "https://github.com/Agents365-ai/drawio-skill.git"
+# How to install each tool on Linux without Homebrew. The kit prints these and
+# never runs them: a package manager needs sudo, which is the person's call.
+LINUX_INSTALL = {
+    "uv": "curl -LsSf https://astral.sh/uv/install.sh | sh",
+    "gitleaks": "download a release from https://github.com/gitleaks/gitleaks/releases",
+    "cloc": "sudo apt install cloc",
+    "osv-scanner": "download a release from https://github.com/google/osv-scanner/releases",
+    "ruff": "uv tool install ruff",
+    "semgrep": "uv tool install semgrep",
+    "dot": "sudo apt install graphviz",
+    "pandoc": "sudo apt install pandoc",
+    "marp": "npm install -g @marp-team/marp-cli",
+    "drawio": (
+        "sudo snap install drawio, or the .deb from "
+        "https://github.com/jgraph/drawio-desktop/releases"
+    ),
+}
+
+
+def _linux() -> bool:
+    return platform.system() == "Linux"
 
 
 def _drawio_app() -> bool:
@@ -92,11 +114,17 @@ def doctor(s: KitSettings) -> None:
 
 
 def tools(s: KitSettings, *, dry_run: bool) -> None:
-    """Install what doctor reports missing: Homebrew formulae, draw.io, jscpd, ESLint, TypeScript, drawio-skill."""
+    """Install what doctor reports missing: Homebrew formulae, draw.io, jscpd, ESLint, TypeScript, drawio-skill.
+
+    On Linux without Homebrew, print the install command for each missing tool
+    instead, and never install draw.io with Homebrew.
+    """
     for tool in ("uv", *OPTIONAL[1:]):
         formula = BREW_FORMULA.get(tool, tool)
         if have(tool):
             skip(f"{tool} installed")
+        elif not have("brew") and _linux():
+            warn(f"{tool} missing; install it with: {LINUX_INSTALL[tool]}")
         elif not have("brew"):
             warn(f"{tool} missing and Homebrew not found (https://brew.sh)")
         elif dry_run:
@@ -106,6 +134,9 @@ def tools(s: KitSettings, *, dry_run: bool) -> None:
             ok(tool)
     if _drawio_app():
         skip("draw.io installed")
+    elif _linux():
+        # Homebrew casks are macOS only, so brew can't install draw.io here.
+        warn(f"draw.io missing; install it with: {LINUX_INSTALL['drawio']}")
     elif not have("brew"):
         warn("draw.io missing and Homebrew not found")
     elif dry_run:

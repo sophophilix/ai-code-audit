@@ -21,7 +21,7 @@ The tutorial doesn't run a full audit. For that, follow
 
 ## Before you start
 
-You need macOS, or Linux with Homebrew, and these tools:
+You need macOS, or Linux (on Windows, Ubuntu in WSL2), and these tools:
 
 - git
 - [uv](https://docs.astral.sh/uv/)
@@ -43,6 +43,10 @@ make doctor
 ```zsh
 make tools
 ```
+
+On Linux without Homebrew, `make tools` prints an install command for each
+missing tool instead of installing it. Run those commands, then `make doctor`
+again.
 
 `make tools` uses Homebrew and npm. To see what it would install first, run
 `bin/kit tools --dry-run`.
