@@ -32,6 +32,18 @@ dev = [
 requires = ["uv_build>=0.11,<0.14"]
 build-backend = "uv_build"
 
+[tool.uv]
+# Semgrep (dev only) pins mcp and OpenTelemetry exactly, at versions with
+# published advisories. Override the pins with patched releases; `make check`
+# runs `semgrep scan`, which proves they still work. Remove these when Semgrep
+# allows the patched versions itself.
+override-dependencies = [
+  "mcp>=1.30.0,<2",
+  "opentelemetry-api>=1.45.2",
+  "opentelemetry-sdk>=1.45.2",
+  "opentelemetry-exporter-otlp-proto-http>=1.45.2",
+]
+
 [tool.ruff]
 line-length = 88
 target-version = "py311"
