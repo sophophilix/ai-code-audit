@@ -6,6 +6,7 @@ import json
 import platform
 from pathlib import Path
 
+from audit_kit import diagram_export
 from audit_kit.console import ok, say, skip, warn
 from audit_kit.errors import AuditKitError
 from audit_kit.runner import LONG, CommandError, git, have, run
@@ -42,6 +43,7 @@ LINUX_INSTALL = {
         "sudo snap install drawio, or the .deb from "
         "https://github.com/jgraph/drawio-desktop/releases"
     ),
+    "xvfb-run": "sudo apt install xvfb",
 }
 
 
@@ -50,7 +52,11 @@ def _linux() -> bool:
 
 
 def _drawio_app() -> bool:
-    return have("drawio") or DRAWIO_APP.is_file()
+    return (
+        have("drawio")
+        or DRAWIO_APP.is_file()
+        or diagram_export.windows_drawio() is not None
+    )
 
 
 def _tagged(s: KitSettings) -> bool:
@@ -86,6 +92,10 @@ def doctor(s: KitSettings) -> None:
     (ok if _drawio_app() else skip)(
         "draw.io" if _drawio_app() else "draw.io not installed"
     )
+    if _linux():  # draw.io needs a display to export images (ADR 0014 D3)
+        (ok if have("xvfb-run") else skip)(
+            "xvfb-run" if have("xvfb-run") else "xvfb-run not installed"
+        )
     if s.drawio_dir.is_dir():
         head = (
             run(
@@ -137,6 +147,8 @@ def tools(s: KitSettings, *, dry_run: bool) -> None:
     elif _linux():
         # Homebrew casks are macOS only, so brew can't install draw.io here.
         warn(f"draw.io missing; install it with: {LINUX_INSTALL['drawio']}")
+    if _linux() and not have("xvfb-run"):
+        warn(f"xvfb-run missing; install it with: {LINUX_INSTALL['xvfb-run']}")
     elif not have("brew"):
         warn("draw.io missing and Homebrew not found")
     elif dry_run:

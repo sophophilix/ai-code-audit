@@ -67,11 +67,11 @@
 - Likely cause: `make tools` installed draw.io with a Homebrew cask, which
   is macOS only (`src/audit_kit/machine.py` before 0.26.2). Not yet confirmed
   with the tester.
-- Status: `planned`
-- Next step: 0.26.2 prints a Linux install command for draw.io instead. The
-  README says images need a manual export. Confirm the message with the
-  tester. Automatic SVG and PNG export from `make diagrams` needs a decision
-  record first.
+- Status: `done` in 0.27.0
+- Next step: 0.26.2 prints a Linux install command for draw.io. 0.27.0
+  exports SVG and PNG images when draw.io is installed, under `xvfb-run` on a
+  Linux machine with no desktop (ADR 0014). Confirm the original message with
+  the tester, and ask them to try the export on WSL2.
 
 ### F5. Unclear where to clone and where to run commands
 
@@ -165,3 +165,4 @@
 |---|---|---|
 | 2026-11-20T12:07:07Z | Drafted | Recorded from two chats on the same day. Names removed. |
 | 2026-11-21 | Updated | F4 and F6 after 0.26.2 (Linux install commands). |
+| 2026-11-20T14:30:02Z | Updated | F4 done in 0.27.0 (diagram images, ADR 0014). |

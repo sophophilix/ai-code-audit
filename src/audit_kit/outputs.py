@@ -6,7 +6,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from audit_kit import diagram_style
+from audit_kit import diagram_export, diagram_style
 from audit_kit.console import ok, skip, warn
 from audit_kit.errors import AuditKitError
 from audit_kit.register import OUTPUT as REGISTER
@@ -19,10 +19,11 @@ VIEWS = "executive,deployment,dataflow,security"
 
 
 def diagrams(s: KitSettings, given: str, style: str = "handdrawn") -> None:
-    """Build, project, style and validate every .audit/diagrams/*.ir.json.
+    """Build, project, style, validate and export every .audit/diagrams/*.ir.json.
 
     The IR is grouped by trust boundary and laid out left to right before the
-    build; the kit's house style (`diagram_style`) is applied after it.
+    build; the kit's house style (`diagram_style`) is applied after it. Images
+    are exported when draw.io is installed (ADR 0014).
     """
     loc = locate(s, given)
     root = loc.ws.root
@@ -82,8 +83,18 @@ def diagrams(s: KitSettings, given: str, style: str = "handdrawn") -> None:
             warn("architecture contracts failed (policy-results.json)")
     if irs:
         ok(f"built {len(irs)} diagram(s); open them in draw.io to tidy")
+        diagram_export.export(loc.ws)
     else:
         skip("no .audit/diagrams/*.ir.json yet")
+
+
+def export_diagrams(s: KitSettings, given: str) -> None:
+    """Export the current .drawio files as images, without rebuilding them.
+
+    Run it after tidying the diagrams in draw.io: `kit diagrams` rebuilds the
+    files from the IR and would overwrite the tidying (ADR 0014 D5).
+    """
+    diagram_export.export(locate(s, given).ws)
 
 
 def publish(s: KitSettings, given: str) -> None:

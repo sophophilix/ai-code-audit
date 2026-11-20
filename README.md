@@ -105,9 +105,15 @@ The architect can add smaller diagrams that each answer one question, and
 architecture rules for the target, such as "no direct path from the internet
 to a data store". `make diagrams` checks the target against them.
 
-The kit writes `.drawio` files, not images. Open them in
-[draw.io](https://www.drawio.com) to tidy them. Then export SVG for Markdown
-and PNG for Word or PowerPoint. Sequence, entity-relationship, data-flow and
+When [draw.io](https://www.drawio.com) is installed, `make diagrams` also
+exports every page as SVG (for Markdown and slides) and PNG (for Word and
+PowerPoint), such as `target.png` and `target-security.png`. Without draw.io
+you get the `.drawio` files only, and the command says so.
+
+To tidy a diagram, open its `.drawio` file in draw.io. Then run
+`make export-diagrams WS=<workspace>` to export your tidied version.
+Don't run `make diagrams` again after tidying: it rebuilds the files and
+overwrites your changes. Sequence, entity-relationship, data-flow and
 lifecycle diagrams are approved but not built yet
 ([ADR 0009](docs/decisions/0009-more-diagram-types-on-drawio.md)).
 
@@ -196,9 +202,10 @@ Run the commands you're happy with, then run `make doctor` again. It still
 installs jscpd, ESLint, TypeScript and drawio-skill itself, which need Node.js
 and git.
 
-draw.io is only needed to tidy the diagrams and export them as images. The
-audit runs without it. In WSL2 you can instead install draw.io on Windows and
-open the `.drawio` files from the workspace there.
+draw.io is only needed for the diagram images and for tidying. The audit
+runs without it. With no desktop, draw.io needs a virtual display to export:
+install `xvfb` (`sudo apt install xvfb`), and the kit uses it. In WSL2 you can
+instead install draw.io on Windows. The kit finds it there and uses it.
 
 ## Why it's built this way
 
